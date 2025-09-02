@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, PreCheckoutQueryHandler, ContextTypes, filters
 from telegram.constants import ParseMode
-import asyncio
 
 # Logging setup
 logging.basicConfig(
@@ -22,8 +21,8 @@ DATABASE_PATH = 'angels_bot.db'
 # Subscription types and pricing (in cents)
 SUBSCRIPTIONS = {
     'free': {'name': 'Free', 'questions': 50, 'cooldown': 30, 'price': 0},
-    'premium_6m': {'name': '6 Months Premium', 'questions': -1, 'cooldown': 15, 'price': 299},   # €2.99
-    'premium_12m': {'name': '12 Months Premium', 'questions': -1, 'cooldown': 10, 'price': 499}  # €4.99
+    'premium_6m': {'name': '6 Months Premium', 'questions': -1, 'cooldown': 15, 'price': 299},
+    'premium_12m': {'name': '12 Months Premium', 'questions': -1, 'cooldown': 10, 'price': 499}
 }
 
 class DatabaseManager:
@@ -36,7 +35,6 @@ class DatabaseManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        # Users table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 user_id INTEGER PRIMARY KEY,
@@ -52,7 +50,6 @@ class DatabaseManager:
             )
         ''')
         
-        # Responses table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS responses (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,7 +62,6 @@ class DatabaseManager:
             )
         ''')
         
-        # Question log for analytics
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS question_log (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -81,42 +77,22 @@ class DatabaseManager:
         conn.commit()
         conn.close()
     
-    def get_image_path(self, angel_type, response_number):
-        """Find the correct image path based on your file names"""
-        if angel_type == 'light':
-            folder = "luce"
-        else:  # dark
-            folder = "OSCURITÀ"
-        
-        # Try different extensions and name formats
-        possible_names = [
-            f"images/{folder}/risposta {response_number}.png",
-            f"images/{folder}/risposta {response_number}.jpg",
-            f"images/{folder}/risposta_{response_number}.png", 
-            f"images/{folder}/risposta_{response_number}.jpg",
-            f"images/{folder}/risposta{response_number}.png",
-            f"images/{folder}/risposta{response_number}.jpg",
-        ]
-        
-        for path in possible_names:
-            if os.path.exists(path):
-                return path
-        
-        return None  # No image found
-    
     def populate_responses(self):
-        """Populate responses if empty - ALL IN ENGLISH"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        # Check if responses already exist
         cursor.execute("SELECT COUNT(*) FROM responses")
         if cursor.fetchone()[0] > 0:
             conn.close()
             return
         
-        # Angel of Light responses - ALL IN ENGLISH
+        # Angel of Light responses
         light_responses = [
+            (1, "I see golden light in your future, let it guide you toward joy", False),
+            (2, "The morning star reveals that hope approaches, have faith in your heart", False),
+            (3, "Luminous winds whisper that patience will be rewarded, bless this moment", False),
+            (4, "The light within you will shine brighter, prepare to welcome grace", False),
+            (5, "A bridge of light is being built for you, cross it with courage and faith", False),
             (16, "I see wings of light protecting you in your journey, trust in divine protection", False),
             (27, "A golden door is opening before you, step through with hope and gratitude", False),
             (31, "A golden thread weaves through your destiny, follow it with trust and wonder", False),
@@ -142,29 +118,18 @@ class DatabaseManager:
             (141, "Crystal caves echo with sounds of your healing, enter them with reverence", False),
             (142, "Sacred springs bubble with waters of renewal, bathe in their restorative power", False),
             (143, "Holy mountains offer perspectives from above, climb them for expanded vision", False),
-            (144, "Blessed valleys provide shelter from life's storms, rest in their protective embrace", False),
-            (145, "Enchanted forests whisper secrets of growth, listen to their ancient wisdom", False),
-            (146, "Your inner sun never sets on love's horizon, let it shine without eclipse", False),
-            (147, "Your spiritual compass always points toward truth, follow its unwavering direction", False),
-            (149, "Your heart's garden blooms with flowers of compassion, tend them with kindness", False),
-            # Additional Light responses for variety
-            (1, "I see golden light in your future, let it guide you toward joy", False),
-            (2, "The morning star reveals that hope approaches, have faith in your heart", False),
-            (3, "Luminous winds whisper that patience will be rewarded, bless this moment", False),
-            (4, "The light within you will shine brighter, prepare to welcome grace", False),
-            (5, "A bridge of light is being built for you, cross it with courage and faith", False),
-            (6, "Divine flames burn away your doubts, trust that clarity will emerge", False),
-            (7, "Sacred geometry patterns your path with divine order, trust the perfect design", False),
-            (8, "Angels gather around your sleeping hours, rest knowing you are protected", False),
-            (9, "The lighthouse of your soul beams across stormy seas, guide others to safety", False),
-            (10, "Crystal tears of joy fall from celestial eyes, weep with happiness when it comes", False),
         ]
         
-        # Angel of Darkness responses - ALL IN ENGLISH
+        # Angel of Darkness responses
         dark_responses = [
+            (1, "From night's depths emerges that mystery will unveil itself, listen to your intuition", False),
+            (2, "Shadow whispers speak of secrets for you, prepare to discover the unexpected", False),
+            (3, "In the cup of shadow your future is mixed, drink with awareness", False),
+            (4, "Your soul's deep roots are strengthening, nurture the inner growth", False),
+            (5, "From midnight's embrace comes the gift of solitude, learn what silence teaches", False),
             (6, "Dancing shadows show you must look beyond appearance, find the hidden truth", False),
             (11, "The growing moon reveals your transformation has begun, embrace what you will become", False),
-            (13, "The full moon reveals your strength is at its peak, embrace your power", False), 
+            (13, "The full moon reveals your strength is at its peak, embrace your power", False),
             (14, "The new moon reveals a new cycle begins, embrace the unknown", False),
             (32, "From time's shadows emerges that truth will reveal itself, listen to your instinct", False),
             (37, "The black mirror shows your hidden strengths, look deeper than surface fears", False),
@@ -187,37 +152,19 @@ class DatabaseManager:
             (118, "Your secret witch brews potions of possibility, trust her ancient recipes", False),
             (119, "Your dormant dragon guards treasures of power, awaken it with courage", False),
             (120, "Your sleeping phoenix prepares for rebirth through flames, surrender to transformation", False),
-            (151, "Obsidian mirrors reflect not your face but your potential, gaze into tomorrow's self", False),
-            (155, "Tourmaline transmutes chaos into creative force, harness the storm within you", False),
-            (165, "Antidotes hide within the very substances that harm, seek wisdom in opposition", False),
-            (171, "Raven caws prophecy from skeletal branches, interpret the omens they deliver", False),
-            (176, "The void pregnant with infinite potential calls you, enter the fertile nothingness", False),
-            # Additional Dark responses for variety
-            (1, "From night's depths emerges that mystery will unveil itself, listen to your intuition", False),
-            (2, "Shadow whispers speak of secrets for you, prepare to discover the unexpected", False),
-            (3, "In the cup of shadow your future is mixed, drink with awareness", False),
-            (4, "Your soul's deep roots are strengthening, nurture the inner growth", False),
-            (5, "From midnight's embrace comes the gift of solitude, learn what silence teaches", False),
-            (7, "The black mother's womb nurtures your rebirth, gestate in her protective embrace", False),
-            (8, "Your shadow self holds keys to forbidden rooms, explore them with conscious intent", False),
-            (9, "Beneath the surface of your calm waters, ancient wisdom stirs with patient power", False),
-            (10, "Night-blooming flowers open only in darkness, find beauty in your struggles", False),
         ]
         
-        # Insert light responses
+        # Insert responses
         for response_num, text, has_image in light_responses:
-            image_path = self.get_image_path('light', response_num) if has_image else None
             cursor.execute(
                 "INSERT INTO responses (response_number, angel_type, text_content, has_image, image_path) VALUES (?, ?, ?, ?, ?)",
-                (response_num, 'light', text, has_image, image_path)
+                (response_num, 'light', text, has_image, None)
             )
         
-        # Insert dark responses  
         for response_num, text, has_image in dark_responses:
-            image_path = self.get_image_path('dark', response_num) if has_image else None
             cursor.execute(
                 "INSERT INTO responses (response_number, angel_type, text_content, has_image, image_path) VALUES (?, ?, ?, ?, ?)",
-                (response_num, 'dark', text, has_image, image_path)
+                (response_num, 'dark', text, has_image, None)
             )
         
         conn.commit()
@@ -256,16 +203,13 @@ class DatabaseManager:
         
         sub_type, questions_used, expires = result
         
-        # Check if premium subscription is still valid
         if sub_type in ['premium_6m', 'premium_12m']:
             if expires and datetime.fromisoformat(expires) > datetime.now():
                 return True
             else:
-                # Expired premium, revert to free
                 self.update_subscription(user_id, 'free')
                 sub_type = 'free'
         
-        # Check free tier limits
         if sub_type == 'free':
             return questions_used < SUBSCRIPTIONS['free']['questions']
         
@@ -290,7 +234,7 @@ class DatabaseManager:
             time_passed = datetime.now() - last_question
             return time_passed >= timedelta(minutes=cooldown_minutes)
         except ValueError:
-            return True  # If datetime parsing fails, allow question
+            return True
     
     def get_time_until_next_question(self, user_id):
         conn = sqlite3.connect(self.db_path)
@@ -330,16 +274,14 @@ class DatabaseManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        # Update user stats
         cursor.execute(
             "UPDATE users SET questions_used = questions_used + 1, last_question_time = ? WHERE user_id = ?",
             (datetime.now().isoformat(), user_id)
         )
         
-        # Log the question
         cursor.execute(
             "INSERT INTO question_log (user_id, angel_type, response_id, question_text) VALUES (?, ?, ?, ?)",
-            (user_id, angel_type, response_id, question_text[:500])  # Limit question length
+            (user_id, angel_type, response_id, question_text[:500])
         )
         
         conn.commit()
@@ -360,22 +302,6 @@ class DatabaseManager:
         
         conn.commit()
         conn.close()
-    
-    def get_user_stats(self):
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT COUNT(*) FROM users")
-        total_users = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM users WHERE subscription_type != 'free'")
-        premium_users = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM question_log WHERE DATE(timestamp) = DATE('now')")
-        questions_today = cursor.fetchone()[0]
-        
-        conn.close()
-        return total_users, premium_users, questions_today
 
 # Initialize database
 db = DatabaseManager(DATABASE_PATH)
@@ -410,7 +336,6 @@ Choose your divine guide:
     ]
     
     reply_markup = InlineKeyboardMarkup(keyboard)
-    
     await update.message.reply_text(welcome_text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -442,22 +367,12 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     elif data == 'premium':
         await show_premium_plans(query)
-    
     elif data == 'status':
         await show_user_status(query, user_id)
-    
-    elif data.startswith('buy_'):
-        sub_type = data.replace('buy_', '')
-        if PAYMENT_TOKEN:
-            await initiate_payment(query, user_id, sub_type)
-        else:
-            await query.edit_message_text("💳 Payment system not configured. Please contact support.")
-    
     elif data == 'back_main':
         await start_from_callback(query, context)
 
 async def start_from_callback(query, context):
-    """Restart bot from callback"""
     user = query.from_user
     db.get_or_create_user(user.id, user.username, user.first_name)
     
@@ -488,33 +403,22 @@ async def show_premium_plans(query):
 🆓 **Free Plan**
 • 50 questions total (shared between angels)
 • 30 minutes cooldown between questions
-• Includes some spectacular images
 
 💎 **6 Months Premium** - €2.99
 • Unlimited questions
 • 15 minutes cooldown
-• All exclusive images
 • Priority support
 
 💎💎 **12 Months Premium** - €4.99
 • Unlimited questions  
 • 10 minutes cooldown
-• All exclusive images
-• Early access to new features
 • Priority support
 
 *Payments are secure and processed by Telegram*"""
     
-    keyboard = []
-    if PAYMENT_TOKEN:
-        keyboard.extend([
-            [InlineKeyboardButton("💎 Buy 6 Months - €2.99", callback_data='buy_premium_6m')],
-            [InlineKeyboardButton("💎💎 Buy 12 Months - €4.99", callback_data='buy_premium_12m')],
-        ])
-    else:
-        keyboard.append([InlineKeyboardButton("💳 Payment Coming Soon", callback_data='payment_soon')])
-    
-    keyboard.append([InlineKeyboardButton("← Back to Main Menu", callback_data='back_main')])
+    keyboard = [
+        [InlineKeyboardButton("← Back to Main Menu", callback_data='back_main')]
+    ]
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
@@ -523,7 +427,7 @@ async def show_user_status(query, user_id):
     conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
     
-    cursor.execute("SELECT subscription_type, questions_used, subscription_expires FROM users WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT subscription_type, questions_used FROM users WHERE user_id = ?", (user_id,))
     result = cursor.fetchone()
     conn.close()
     
@@ -531,7 +435,7 @@ async def show_user_status(query, user_id):
         await query.edit_message_text("User not found. Please use /start")
         return
     
-    sub_type, questions_used, expires = result
+    sub_type, questions_used = result
     sub_info = SUBSCRIPTIONS[sub_type]
     
     remaining = "Unlimited" if sub_info['questions'] == -1 else max(0, sub_info['questions'] - questions_used)
@@ -543,14 +447,6 @@ async def show_user_status(query, user_id):
 **Questions Remaining:** {remaining}
 **Cooldown:** {sub_info['cooldown']} minutes"""
     
-    if expires:
-        try:
-            exp_date = datetime.fromisoformat(expires).strftime("%Y-%m-%d")
-            status_text += f"\n**Expires:** {exp_date}"
-        except ValueError:
-            pass
-    
-    # Add cooldown info if applicable
     if not db.check_cooldown(user_id):
         minutes_left = db.get_time_until_next_question(user_id)
         status_text += f"\n\n⏰ **Next question in:** {minutes_left} minutes"
@@ -567,7 +463,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     text = update.message.text
     
-    # Check if user has selected an angel
     if 'selected_angel' not in context.user_data:
         keyboard = [
             [InlineKeyboardButton("✨ Angel of Light", callback_data='angel_light')],
@@ -580,17 +475,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     
-    # Check if this looks like name/birthdate (contains numbers and date separators)
     has_numbers = any(char.isdigit() for char in text)
     has_date_sep = any(sep in text for sep in ['/', '-', '.'])
     
     if has_numbers and has_date_sep and len(text.split()) <= 3:
-        # Store user info
         context.user_data['user_info'] = text
         angel_type = context.user_data['selected_angel']
         angel_name = "Seraphiel" if angel_type == 'light' else "Nyxareth"
         
-        # Update database
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
         cursor.execute("UPDATE users SET user_name = ?, birth_date = ? WHERE user_id = ?", 
@@ -604,10 +496,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     
-    # This is a question
     angel_type = context.user_data['selected_angel']
     
-    # Check limits and cooldown
     if not db.can_ask_question(user_id):
         await update.message.reply_text(
             "⛔ You have reached your question limit!\n\n"
@@ -630,7 +520,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     
-    # Get response
     response = db.get_random_response(angel_type)
     if not response:
         await update.message.reply_text("⛔ Sorry, no responses available.")
@@ -638,24 +527,39 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     response_id, response_number, angel_type, text_content, has_image, image_path, language = response
     
-    # Log the question
     db.log_question(user_id, angel_type, response_id, text[:200])
     
-    # Send response with angel signature
     angel_name = "Seraphiel" if angel_type == 'light' else "Nyxareth"
     angel_emoji = "✨" if angel_type == 'light' else "🖤"
     formatted_response = f"{angel_emoji} *{text_content}*\n\n*- {angel_name}*"
     
-    # Try to send with image
-    image_sent = False
-    if has_image and image_path:
-        try:
-            if os.path.exists(image_path):
-                with open(image_path, 'rb') as photo:
-                    await update.message.reply_photo(
-                        photo=photo,
-                        caption=formatted_response,
-                        parse_mode=ParseMode.MARKDOWN
-                    )
-                    image_sent = True
-                    logger.info(f"Sent image: {image_path}")
+    await update.message.reply_text(formatted_response, parse_mode=ParseMode.MARKDOWN)
+    
+    keyboard = [
+        [InlineKeyboardButton(f"Ask {angel_name} Again", callback_data=f'angel_{angel_type}')],
+        [InlineKeyboardButton("Switch Angel", callback_data='back_main')],
+        [InlineKeyboardButton("💎 Upgrade Premium", callback_data='premium')]
+    ]
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        "The divine energies have spoken. What would you like to do next?",
+        reply_markup=reply_markup
+    )
+
+def main():
+    if not BOT_TOKEN:
+        logger.error("BOT_TOKEN environment variable not set!")
+        return
+    
+    application = Application.builder().token(BOT_TOKEN).build()
+    
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(handle_callback))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    
+    logger.info("Angels Oracle Bot started successfully!")
+    application.run_polling(drop_pending_updates=True)
+
+if __name__ == '__main__':
+    main()
