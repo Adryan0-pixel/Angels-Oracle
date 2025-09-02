@@ -52,7 +52,7 @@ class DatabaseManager:
             )
         ''')
         
-        # Responses table - MODIFICATA per includere response_number
+        # Responses table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS responses (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -82,13 +82,13 @@ class DatabaseManager:
         conn.close()
     
     def get_image_path(self, angel_type, response_number):
-        """Trova il percorso corretto dell'immagine basandosi sui tuoi nomi file"""
+        """Find the correct image path based on your file names"""
         if angel_type == 'light':
             folder = "luce"
         else:  # dark
             folder = "OSCURITÀ"
         
-        # Prova diverse estensioni e formati di nome
+        # Try different extensions and name formats
         possible_names = [
             f"images/{folder}/risposta {response_number}.png",
             f"images/{folder}/risposta {response_number}.jpg",
@@ -102,10 +102,10 @@ class DatabaseManager:
             if os.path.exists(path):
                 return path
         
-        return None  # Nessuna immagine trovata
+        return None  # No image found
     
     def populate_responses(self):
-        """Populate responses if empty - AGGIORNATA con i tuoi numeri di risposta"""
+        """Populate responses if empty - ALL IN ENGLISH"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
@@ -115,84 +115,93 @@ class DatabaseManager:
             conn.close()
             return
         
-        # Angel of Light responses - CON I NUMERI DELLE TUE IMMAGINI
+        # Angel of Light responses - ALL IN ENGLISH
         light_responses = [
-            (16, "Vedo ali di luce proteggerti nel tuo viaggio, confida nella protezione divina", True),
-            (27, "Una porta dorata si sta aprendo davanti a te, varcala con speranza e gratitudine", True),
-            (31, "A golden thread weaves through your destiny, follow it with trust and wonder", True),
-            (46, "I see golden rain falling on your garden, let abundance grow in every corner", True),
-            (61, "Heaven's gate opens wider with each kind act, step through with generosity", True),
-            (74, "The sail of your dreams catches winds of opportunity, navigate toward your goals", True),
-            (76, "Sunrise paints your tomorrow with colors of possibility, wake to new chances", True),
-            (78, "Rainbows arch over your trials with promises of beauty, look up after storms", True),
-            (79, "Butterflies carry wishes on gossamer wings to the divine, release your desires", True),
-            (86, "Your guardian's wings cast shadows of protection, rest in their shelter", True),
-            (121, "Starlight weaves silver threads through your dreams, follow them to manifest reality", True),
-            (122, "Moonbeams paint pathways across your night sky, walk them toward your destiny", True),
-            (124, "Candlelight flickers with messages of hope, interpret their dancing shadows", True),
-            (126, "Angels collect your tears in crystal vials, transforming sorrow into wisdom", True),
-            (132, "The golden fleece awaits your heroic journey, embark on your personal quest", True),
-            (133, "The holy grail fills with whatever you truly need, drink from your authentic desires", True),
-            (134, "The philosopher's stone transforms your lead experiences into gold, embrace alchemy", True),
-            (136, "White horses carry your prayers across celestial plains, mount them with faith", True),
-            (137, "Doves deliver messages between earth and heaven, send your requests upward", True),
-            (138, "Eagles soar with visions of your highest potential, spread your wings and follow", True),
-            (139, "Swans glide gracefully through turbulent waters, embody their serene elegance", True),
-            (140, "Peacocks display your true colors with pride, show your authentic beauty", True),
-            (141, "Crystal caves echo with sounds of your healing, enter them with reverence", True),
-            (142, "Sacred springs bubble with waters of renewal, bathe in their restorative power", True),
-            (143, "Holy mountains offer perspectives from above, climb them for expanded vision", True),
-            (144, "Blessed valleys provide shelter from life's storms, rest in their protective embrace", True),
-            (145, "Enchanted forests whisper secrets of growth, listen to their ancient wisdom", True),
-            (146, "Your inner sun never sets on love's horizon, let it shine without eclipse", True),
-            (147, "Your spiritual compass always points toward truth, follow its unwavering direction", True),
-            (149, "Your heart's garden blooms with flowers of compassion, tend them with kindness", True),
-            # Aggiungi risposte senza immagine per completare
-            (1, "Vedo una luce dorata nel tuo futuro, lascia che ti guidi verso la gioia", False),
-            (2, "La stella del mattino mi rivela che la speranza si avvicina, abbi fiducia nel tuo cuore", False),
-            (3, "Il vento luminoso ti sussurra che la pazienza sarà premiata, benedici questo momento", False),
-            (4, "La luce che è in te brillerà più forte, preparati ad accogliere la grazia", False),
-            (5, "Un ponte di luce si sta costruendo per te, attraversalo con coraggio e fiducia", False),
+            (16, "I see wings of light protecting you in your journey, trust in divine protection", False),
+            (27, "A golden door is opening before you, step through with hope and gratitude", False),
+            (31, "A golden thread weaves through your destiny, follow it with trust and wonder", False),
+            (46, "I see golden rain falling on your garden, let abundance grow in every corner", False),
+            (61, "Heaven's gate opens wider with each kind act, step through with generosity", False),
+            (74, "The sail of your dreams catches winds of opportunity, navigate toward your goals", False),
+            (76, "Sunrise paints your tomorrow with colors of possibility, wake to new chances", False),
+            (78, "Rainbows arch over your trials with promises of beauty, look up after storms", False),
+            (79, "Butterflies carry wishes on gossamer wings to the divine, release your desires", False),
+            (86, "Your guardian's wings cast shadows of protection, rest in their shelter", False),
+            (121, "Starlight weaves silver threads through your dreams, follow them to manifest reality", False),
+            (122, "Moonbeams paint pathways across your night sky, walk them toward your destiny", False),
+            (124, "Candlelight flickers with messages of hope, interpret their dancing shadows", False),
+            (126, "Angels collect your tears in crystal vials, transforming sorrow into wisdom", False),
+            (132, "The golden fleece awaits your heroic journey, embark on your personal quest", False),
+            (133, "The holy grail fills with whatever you truly need, drink from your authentic desires", False),
+            (134, "The philosopher's stone transforms your lead experiences into gold, embrace alchemy", False),
+            (136, "White horses carry your prayers across celestial plains, mount them with faith", False),
+            (137, "Doves deliver messages between earth and heaven, send your requests upward", False),
+            (138, "Eagles soar with visions of your highest potential, spread your wings and follow", False),
+            (139, "Swans glide gracefully through turbulent waters, embody their serene elegance", False),
+            (140, "Peacocks display your true colors with pride, show your authentic beauty", False),
+            (141, "Crystal caves echo with sounds of your healing, enter them with reverence", False),
+            (142, "Sacred springs bubble with waters of renewal, bathe in their restorative power", False),
+            (143, "Holy mountains offer perspectives from above, climb them for expanded vision", False),
+            (144, "Blessed valleys provide shelter from life's storms, rest in their protective embrace", False),
+            (145, "Enchanted forests whisper secrets of growth, listen to their ancient wisdom", False),
+            (146, "Your inner sun never sets on love's horizon, let it shine without eclipse", False),
+            (147, "Your spiritual compass always points toward truth, follow its unwavering direction", False),
+            (149, "Your heart's garden blooms with flowers of compassion, tend them with kindness", False),
+            # Additional Light responses for variety
+            (1, "I see golden light in your future, let it guide you toward joy", False),
+            (2, "The morning star reveals that hope approaches, have faith in your heart", False),
+            (3, "Luminous winds whisper that patience will be rewarded, bless this moment", False),
+            (4, "The light within you will shine brighter, prepare to welcome grace", False),
+            (5, "A bridge of light is being built for you, cross it with courage and faith", False),
+            (6, "Divine flames burn away your doubts, trust that clarity will emerge", False),
+            (7, "Sacred geometry patterns your path with divine order, trust the perfect design", False),
+            (8, "Angels gather around your sleeping hours, rest knowing you are protected", False),
+            (9, "The lighthouse of your soul beams across stormy seas, guide others to safety", False),
+            (10, "Crystal tears of joy fall from celestial eyes, weep with happiness when it comes", False),
         ]
         
-        # Angel of Darkness responses - CON I NUMERI DELLE TUE IMMAGINI  
+        # Angel of Darkness responses - ALL IN ENGLISH
         dark_responses = [
-            (6, "Le ombre danzanti mi mostrano che devi guardare oltre l'apparenza, trova la verità nascosta", True),
-            (11, "La luna crescente rivela che la tua trasformazione è iniziata, abbraccia ciò che diventerai", True),
-            (13, "La luna piena rivela che la tua forza è al culmine, abbraccia il tuo potere", True), 
-            (14, "La luna nuova rivela che un nuovo ciclo inizia, abbraccia l'ignoto", True),
-            (32, "Dalle ombre del tempo emerge che la verità si rivelerà, ascolta il tuo istinto", True),
-            (37, "The black mirror shows your hidden strengths, look deeper than surface fears", True),
-            (41, "Raven wings carry messages from your depths, decode the symbols they bring", True),
-            (42, "Wolf howls echo your primal knowing, remember the wildness you've forgotten", True),
-            (44, "Spider webs show intricate connections, weave the pattern that calls you", True),
-            (45, "Owl eyes pierce through illusion's veil, see the truth others fear to face", True),
-            (46, "In the cavern of your unconscious, treasures wait for the bold explorer", True),
-            (48, "In the forest of your dreams, wisdom grows for the patient wanderer", True),
-            (49, "In the ocean of your emotions, pearls form for the deep diver", True),
-            (67, "Your dark twin whispers truths you fear to hear, listen with courageous ears", True),
-            (94, "Below the noise of constant chatter, profound silence holds deep answers", True),
-            (101, "The cauldron of transformation bubbles with your becoming, stir it with intention", True),
-            (104, "The pentacle of protection shields your vulnerability, invoke it when needed", True),
-            (105, "Dusk contemplations prepare you for night's teachings, welcome the darkness", True),
-            (108, "Dawn reflections merge shadow and light within you, embrace your complexity", True),
-            (111, "The underworld rivers carry messages from your depths, decode their meaning", True),
-            (112, "The shadow realm mirrors show inverted truths, read them backwards", True),
-            (116, "Your inner vampire thirsts for authentic experience, feed it real encounters", True),
-            (118, "Your secret witch brews potions of possibility, trust her ancient recipes", True),
-            (119, "Your dormant dragon guards treasures of power, awaken it with courage", True),
-            (120, "Your sleeping phoenix prepares for rebirth through flames, surrender to transformation", True),
-            (151, "Obsidian mirrors reflect not your face but your potential, gaze into tomorrow's self", True),
-            (155, "Tourmaline transmutes chaos into creative force, harness the storm within you", True),
-            (165, "Antidotes hide within the very substances that harm, seek wisdom in opposition", True),
-            (171, "Raven caws prophecy from skeletal branches, interpret the omens they deliver", True),
-            (176, "The void pregnant with infinite potential calls you, enter the fertile nothingness", True),
-            # Aggiungi risposte senza immagine per completare
-            (1, "Dalle profondità della notte emerge che il mistero si svelerà, ascolta la tua intuizione", False),
-            (2, "I sussurri delle ombre parlano di segreti per te, preparati a scoprire l'inaspettato", False),
-            (3, "Nel calice dell'ombra si mescola il tuo futuro, bevi con consapevolezza", False),
-            (4, "Le radici profonde della tua anima si stanno rafforzando, nutri la crescita interiore", False),
+            (6, "Dancing shadows show you must look beyond appearance, find the hidden truth", False),
+            (11, "The growing moon reveals your transformation has begun, embrace what you will become", False),
+            (13, "The full moon reveals your strength is at its peak, embrace your power", False), 
+            (14, "The new moon reveals a new cycle begins, embrace the unknown", False),
+            (32, "From time's shadows emerges that truth will reveal itself, listen to your instinct", False),
+            (37, "The black mirror shows your hidden strengths, look deeper than surface fears", False),
+            (41, "Raven wings carry messages from your depths, decode the symbols they bring", False),
+            (42, "Wolf howls echo your primal knowing, remember the wildness you've forgotten", False),
+            (44, "Spider webs show intricate connections, weave the pattern that calls you", False),
+            (45, "Owl eyes pierce through illusion's veil, see the truth others fear to face", False),
+            (46, "In the cavern of your unconscious, treasures wait for the bold explorer", False),
+            (48, "In the forest of your dreams, wisdom grows for the patient wanderer", False),
+            (49, "In the ocean of your emotions, pearls form for the deep diver", False),
+            (67, "Your dark twin whispers truths you fear to hear, listen with courageous ears", False),
+            (94, "Below the noise of constant chatter, profound silence holds deep answers", False),
+            (101, "The cauldron of transformation bubbles with your becoming, stir it with intention", False),
+            (104, "The pentacle of protection shields your vulnerability, invoke it when needed", False),
+            (105, "Dusk contemplations prepare you for night's teachings, welcome the darkness", False),
+            (108, "Dawn reflections merge shadow and light within you, embrace your complexity", False),
+            (111, "The underworld rivers carry messages from your depths, decode their meaning", False),
+            (112, "The shadow realm mirrors show inverted truths, read them backwards", False),
+            (116, "Your inner vampire thirsts for authentic experience, feed it real encounters", False),
+            (118, "Your secret witch brews potions of possibility, trust her ancient recipes", False),
+            (119, "Your dormant dragon guards treasures of power, awaken it with courage", False),
+            (120, "Your sleeping phoenix prepares for rebirth through flames, surrender to transformation", False),
+            (151, "Obsidian mirrors reflect not your face but your potential, gaze into tomorrow's self", False),
+            (155, "Tourmaline transmutes chaos into creative force, harness the storm within you", False),
+            (165, "Antidotes hide within the very substances that harm, seek wisdom in opposition", False),
+            (171, "Raven caws prophecy from skeletal branches, interpret the omens they deliver", False),
+            (176, "The void pregnant with infinite potential calls you, enter the fertile nothingness", False),
+            # Additional Dark responses for variety
+            (1, "From night's depths emerges that mystery will unveil itself, listen to your intuition", False),
+            (2, "Shadow whispers speak of secrets for you, prepare to discover the unexpected", False),
+            (3, "In the cup of shadow your future is mixed, drink with awareness", False),
+            (4, "Your soul's deep roots are strengthening, nurture the inner growth", False),
             (5, "From midnight's embrace comes the gift of solitude, learn what silence teaches", False),
+            (7, "The black mother's womb nurtures your rebirth, gestate in her protective embrace", False),
+            (8, "Your shadow self holds keys to forbidden rooms, explore them with conscious intent", False),
+            (9, "Beneath the surface of your calm waters, ancient wisdom stirs with patient power", False),
+            (10, "Night-blooming flowers open only in darkness, find beauty in your struggles", False),
         ]
         
         # Insert light responses
@@ -213,7 +222,7 @@ class DatabaseManager:
         
         conn.commit()
         conn.close()
-        logger.info(f"Database popolato con {len(light_responses)} risposte luce e {len(dark_responses)} risposte oscurità")
+        logger.info(f"Database populated with {len(light_responses)} light and {len(dark_responses)} dark responses")
     
     def get_or_create_user(self, user_id, username=None, first_name=None):
         conn = sqlite3.connect(self.db_path)
@@ -376,36 +385,33 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     db.get_or_create_user(user.id, user.username, user.first_name)
     
-    welcome_text = """🌟 Benvenuto nel Bot Oracolo degli Angeli! 🌙
+    welcome_text = """✨ Welcome to the Angels Oracle Bot! 🌙
 
-Scegli la tua guida divina:
-✨ **Angelo di Luce** - Speranza, protezione e guida  
-🖤 **Angelo dell'Oscurità** - Verità nascoste, trasformazione e saggezza profonda
+Choose your divine guide:
+✨ **Angel of Light** - Hope, protection, and guidance  
+🖤 **Angel of Darkness** - Hidden truths, transformation, and deep wisdom
 
-**Come funziona:**
-1. Scegli il tuo Angelo
-2. Condividi nome e data di nascita (per personalizzare)  
-3. Fai la tua domanda
-4. Ricevi la guida divina
+**How it works:**
+1. Choose your Angel
+2. Share your name and birth date (for personalization)  
+3. Ask your question
+4. Receive divine guidance
 
-**Utenti gratuiti:** 50 domande totali
-**Utenti premium:** Domande illimitate + tempi di attesa ridotti
+**Free users:** 50 questions total
+**Premium users:** Unlimited questions + shorter cooldowns
 
-⚠️ *Disclaimer: Questo è solo per intrattenimento. Le risposte non sono vera guida spirituale.*"""
+⚠️ *Disclaimer: This is for entertainment purposes only. Responses are not real spiritual guidance.*"""
     
     keyboard = [
-        [InlineKeyboardButton("✨ Angelo di Luce", callback_data='angel_light')],
-        [InlineKeyboardButton("🖤 Angelo dell'Oscurità", callback_data='angel_dark')],
-        [InlineKeyboardButton("💎 Piani Premium", callback_data='premium')],
-        [InlineKeyboardButton("ℹ️ Il Mio Stato", callback_data='status')]
+        [InlineKeyboardButton("✨ Angel of Light", callback_data='angel_light')],
+        [InlineKeyboardButton("🖤 Angel of Darkness", callback_data='angel_dark')],
+        [InlineKeyboardButton("💎 View Premium Plans", callback_data='premium')],
+        [InlineKeyboardButton("ℹ️ My Status", callback_data='status')]
     ]
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await update.message.reply_text(welcome_text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
-
-# [Il resto delle funzioni rimane identico al codice originale...]
-# [Continuo con le altre funzioni senza modifiche...]
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -420,17 +426,17 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if angel_type == 'light':
             angel_name = "Seraphiel"
-            angel_message = "Io sono Seraphiel, l'Angelo di Luce. Sono qui per guidarti verso speranza, protezione e saggezza divina."
+            angel_message = "I am Seraphiel, the Angel of Light. I am here to guide you toward hope, protection, and divine wisdom."
             angel_emoji = "✨"
         else:
             angel_name = "Nyxareth"
-            angel_message = "Io sono Nyxareth, l'Angelo dell'Oscurità. Sono qui per mostrarti verità nascoste e guidare la tua trasformazione."
+            angel_message = "I am Nyxareth, the Angel of Darkness. I am here to show you hidden truths and guide your transformation."
             angel_emoji = "🖤"
         
         intro_text = f"{angel_emoji} **{angel_message}** {angel_emoji}\n\n" \
-                    f"Per favore condividi il tuo nome di battesimo e data di nascita per una guida personalizzata:\n" \
-                    f"Esempio: 'Maria 15/03/1990'\n\n" \
-                    f"Poi fai la tua domanda e ricevi la saggezza divina!"
+                    f"Please share your first name and birth date for personalized guidance:\n" \
+                    f"Example: 'Maria 15/03/1990'\n\n" \
+                    f"Then ask your question and receive divine insight!"
         
         await query.edit_message_text(intro_text, parse_mode=ParseMode.MARKDOWN)
     
@@ -445,13 +451,117 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if PAYMENT_TOKEN:
             await initiate_payment(query, user_id, sub_type)
         else:
-            await query.edit_message_text("💳 Sistema pagamenti non configurato. Contatta il supporto.")
+            await query.edit_message_text("💳 Payment system not configured. Please contact support.")
     
     elif data == 'back_main':
         await start_from_callback(query, context)
 
-# [Continuo con tutte le altre funzioni identiche al codice originale...]
-# [Per brevità includo solo le funzioni principali, il resto rimane uguale]
+async def start_from_callback(query, context):
+    """Restart bot from callback"""
+    user = query.from_user
+    db.get_or_create_user(user.id, user.username, user.first_name)
+    
+    welcome_text = """✨ Welcome to the Angels Oracle Bot! 🌙
+
+Choose your divine guide:
+✨ **Angel of Light** - Hope, protection, and guidance  
+🖤 **Angel of Darkness** - Hidden truths, transformation, and deep wisdom
+
+**Free users:** 50 questions total
+**Premium users:** Unlimited questions + shorter cooldowns
+
+⚠️ *Disclaimer: This is for entertainment purposes only.*"""
+    
+    keyboard = [
+        [InlineKeyboardButton("✨ Angel of Light", callback_data='angel_light')],
+        [InlineKeyboardButton("🖤 Angel of Darkness", callback_data='angel_dark')],
+        [InlineKeyboardButton("💎 View Premium Plans", callback_data='premium')],
+        [InlineKeyboardButton("ℹ️ My Status", callback_data='status')]
+    ]
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(welcome_text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
+
+async def show_premium_plans(query):
+    text = """💎 **Premium Plans** 💎
+
+🆓 **Free Plan**
+• 50 questions total (shared between angels)
+• 30 minutes cooldown between questions
+• Includes some spectacular images
+
+💎 **6 Months Premium** - €2.99
+• Unlimited questions
+• 15 minutes cooldown
+• All exclusive images
+• Priority support
+
+💎💎 **12 Months Premium** - €4.99
+• Unlimited questions  
+• 10 minutes cooldown
+• All exclusive images
+• Early access to new features
+• Priority support
+
+*Payments are secure and processed by Telegram*"""
+    
+    keyboard = []
+    if PAYMENT_TOKEN:
+        keyboard.extend([
+            [InlineKeyboardButton("💎 Buy 6 Months - €2.99", callback_data='buy_premium_6m')],
+            [InlineKeyboardButton("💎💎 Buy 12 Months - €4.99", callback_data='buy_premium_12m')],
+        ])
+    else:
+        keyboard.append([InlineKeyboardButton("💳 Payment Coming Soon", callback_data='payment_soon')])
+    
+    keyboard.append([InlineKeyboardButton("← Back to Main Menu", callback_data='back_main')])
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
+
+async def show_user_status(query, user_id):
+    conn = sqlite3.connect(DATABASE_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT subscription_type, questions_used, subscription_expires FROM users WHERE user_id = ?", (user_id,))
+    result = cursor.fetchone()
+    conn.close()
+    
+    if not result:
+        await query.edit_message_text("User not found. Please use /start")
+        return
+    
+    sub_type, questions_used, expires = result
+    sub_info = SUBSCRIPTIONS[sub_type]
+    
+    remaining = "Unlimited" if sub_info['questions'] == -1 else max(0, sub_info['questions'] - questions_used)
+    
+    status_text = f"""📊 **Your Status** 📊
+
+**Plan:** {sub_info['name']}
+**Questions Used:** {questions_used}
+**Questions Remaining:** {remaining}
+**Cooldown:** {sub_info['cooldown']} minutes"""
+    
+    if expires:
+        try:
+            exp_date = datetime.fromisoformat(expires).strftime("%Y-%m-%d")
+            status_text += f"\n**Expires:** {exp_date}"
+        except ValueError:
+            pass
+    
+    # Add cooldown info if applicable
+    if not db.check_cooldown(user_id):
+        minutes_left = db.get_time_until_next_question(user_id)
+        status_text += f"\n\n⏰ **Next question in:** {minutes_left} minutes"
+    
+    keyboard = [
+        [InlineKeyboardButton("💎 Upgrade to Premium", callback_data='premium')],
+        [InlineKeyboardButton("← Back to Main Menu", callback_data='back_main')]
+    ]
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(status_text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -460,24 +570,72 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Check if user has selected an angel
     if 'selected_angel' not in context.user_data:
         keyboard = [
-            [InlineKeyboardButton("✨ Angelo di Luce", callback_data='angel_light')],
-            [InlineKeyboardButton("🖤 Angelo dell'Oscurità", callback_data='angel_dark')]
+            [InlineKeyboardButton("✨ Angel of Light", callback_data='angel_light')],
+            [InlineKeyboardButton("🖤 Angel of Darkness", callback_data='angel_dark')]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text(
-            "Per favore scegli prima il tuo Angelo! 🌟",
+            "Please choose your Angel first! ✨",
             reply_markup=reply_markup
         )
         return
     
-    # [Il resto della logica rimane identica...]
-    # Get response
-    response = db.get_random_response(context.user_data['selected_angel'])
-    if not response:
-        await update.message.reply_text("⛔ Spiacente, nessuna risposta disponibile.")
+    # Check if this looks like name/birthdate (contains numbers and date separators)
+    has_numbers = any(char.isdigit() for char in text)
+    has_date_sep = any(sep in text for sep in ['/', '-', '.'])
+    
+    if has_numbers and has_date_sep and len(text.split()) <= 3:
+        # Store user info
+        context.user_data['user_info'] = text
+        angel_type = context.user_data['selected_angel']
+        angel_name = "Seraphiel" if angel_type == 'light' else "Nyxareth"
+        
+        # Update database
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET user_name = ?, birth_date = ? WHERE user_id = ?", 
+                      (text, text, user_id))
+        conn.commit()
+        conn.close()
+        
+        await update.message.reply_text(
+            f"Your essence has been recognized by {angel_name}. 🔮\n\n"
+            f"Now ask your question to receive divine guidance:"
+        )
         return
     
-    # MODIFICATO: ora usiamo i campi corretti dal database
+    # This is a question
+    angel_type = context.user_data['selected_angel']
+    
+    # Check limits and cooldown
+    if not db.can_ask_question(user_id):
+        await update.message.reply_text(
+            "⛔ You have reached your question limit!\n\n"
+            "Upgrade to Premium for unlimited questions:",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("💎 View Premium Plans", callback_data='premium')]
+            ])
+        )
+        return
+    
+    if not db.check_cooldown(user_id):
+        minutes_left = db.get_time_until_next_question(user_id)
+        angel_name = "Seraphiel" if angel_type == 'light' else "Nyxareth"
+        await update.message.reply_text(
+            f"⏰ {angel_name} needs {minutes_left} more minutes to restore divine energy.\n\n"
+            f"Upgrade to Premium for shorter cooldowns!",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("💎 View Premium Plans", callback_data='premium')]
+            ])
+        )
+        return
+    
+    # Get response
+    response = db.get_random_response(angel_type)
+    if not response:
+        await update.message.reply_text("⛔ Sorry, no responses available.")
+        return
+    
     response_id, response_number, angel_type, text_content, has_image, image_path, language = response
     
     # Log the question
@@ -488,7 +646,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     angel_emoji = "✨" if angel_type == 'light' else "🖤"
     formatted_response = f"{angel_emoji} *{text_content}*\n\n*- {angel_name}*"
     
-    # Try to send with image - MIGLIORATA la gestione delle immagini
+    # Try to send with image
     image_sent = False
     if has_image and image_path:
         try:
@@ -500,54 +658,4 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         parse_mode=ParseMode.MARKDOWN
                     )
                     image_sent = True
-                    logger.info(f"Inviata immagine: {image_path}")
-            else:
-                logger.warning(f"Immagine non trovata: {image_path}")
-        except Exception as e:
-            logger.warning(f"Errore invio immagine {image_path}: {e}")
-    
-    # Send text if image failed or no image
-    if not image_sent:
-        await update.message.reply_text(formatted_response, parse_mode=ParseMode.MARKDOWN)
-    
-    # Show options for next action
-    keyboard = [
-        [InlineKeyboardButton(f"Chiedi di nuovo a {angel_name}", callback_data=f'angel_{angel_type}')],
-        [InlineKeyboardButton("Cambia Angelo", callback_data='back_main')],
-        [InlineKeyboardButton("💎 Premium", callback_data='premium')]
-    ]
-    
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
-        "Le energie divine hanno parlato. Cosa vorresti fare ora?",
-        reply_markup=reply_markup
-    )
-
-# [Tutte le altre funzioni rimangono identiche...]
-# [Per brevità non le riscrivo, ma vanno incluse nel file finale]
-
-def main():
-    """Start the bot"""
-    if not BOT_TOKEN:
-        logger.error("BOT_TOKEN environment variable not set!")
-        return
-    
-    application = Application.builder().token(BOT_TOKEN).build()
-    
-    # Handlers
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(handle_callback))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    
-    # Payment handlers (only if payment token is available)
-    if PAYMENT_TOKEN:
-        application.add_handler(PreCheckoutQueryHandler(lambda update, context: update.pre_checkout_query.answer(ok=True)))
-        application.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, lambda update, context: update.message.reply_text("🎉 Pagamento riuscito! 🎉")))
-    
-    logger.info("Bot Oracolo degli Angeli avviato con successo!")
-    
-    # Start the bot
-    application.run_polling(drop_pending_updates=True)
-
-if __name__ == '__main__':
-    main()
+                    logger.info(f"Sent image: {image_path}")
