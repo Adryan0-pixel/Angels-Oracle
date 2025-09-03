@@ -691,8 +691,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if sound_path and os.path.exists(sound_path):
         try:
             with open(sound_path, 'rb') as sound_file:
-                await update.message.reply_audio(
-                    audio=sound_file,
+                await update.message.reply_voice(
+                    voice=sound_file,
                     caption=f"🎵 {angel_name}'s divine energy resonates...",
                     parse_mode=ParseMode.MARKDOWN
                 )
