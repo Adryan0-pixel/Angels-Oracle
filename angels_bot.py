@@ -358,9 +358,9 @@ class DatabaseManager:
     
     def get_sound_path(self, angel_type):
         if angel_type == 'light':
-            return 'sounds/light_angel.mp3'
+            return 'sounds/light_angel.ogg'
         elif angel_type == 'dark':
-            return 'sounds/dark_angel.mp3'
+            return 'sounds/dark_angel.ogg'
         return None
     
     def log_question(self, user_id, angel_type, response_id, question_text=""):
