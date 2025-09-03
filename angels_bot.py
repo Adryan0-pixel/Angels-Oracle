@@ -687,6 +687,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text(formatted_response, parse_mode=ParseMode.MARKDOWN)
     
+    # Send image if available
+    image_path = db.get_image_path(angel_type, response_number)
+    if image_path:
+        try:
+            with open(image_path, 'rb') as image_file:
+                await update.message.reply_photo(
+                    photo=image_file,
+                    caption=f"{angel_emoji} Divine vision from {angel_name}",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+        except Exception as e:
+            logger.warning(f"Could not send image file: {e}")
+    
+    # Send sound effect (always)
     sound_path = db.get_sound_path(angel_type)
     if sound_path and os.path.exists(sound_path):
         try:
