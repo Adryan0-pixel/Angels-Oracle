@@ -362,11 +362,8 @@ class DatabaseManager:
         elif angel_type == 'dark':
             return 'sounds/dark_angel.ogg'
         return None
-        
-        def get_image_path(self, angel_type, response_number):
-        """
-        Returns the path to the image file for the specified angel type and response number
-        """
+    
+    def get_image_path(self, angel_type, response_number):
         if angel_type == 'light':
             folder = 'luce'
         elif angel_type == 'dark':
@@ -691,7 +688,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⛔ Sorry, no responses available.")
         return
     
-    response_id, response_number, angel_type, text_content, has_image, image_path, language = response
+    response_id, response_number, angel_type_from_db, text_content, has_image, image_path_db, language = response
     
     db.log_question(user_id, angel_type, response_id, text[:200])
     
@@ -701,9 +698,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text(formatted_response, parse_mode=ParseMode.MARKDOWN)
     
-    # Send image if available
+    # Send image if available (using the actual angel_type and response_number from DB)
     image_path = db.get_image_path(angel_type, response_number)
+    logger.info(f"Looking for image: {image_path}")
     if image_path:
+        logger.info(f"Image path exists, trying to send: {image_path}")
         try:
             with open(image_path, 'rb') as image_file:
                 await update.message.reply_photo(
@@ -713,10 +712,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
         except Exception as e:
             logger.warning(f"Could not send image file: {e}")
+    else:
+        logger.info(f"No image found for {angel_type} response {response_number}")
     
     # Send sound effect (always)
     sound_path = db.get_sound_path(angel_type)
+    logger.info(f"Looking for sound: {sound_path}")
     if sound_path and os.path.exists(sound_path):
+        logger.info(f"Sound path exists, trying to send: {sound_path}")
         try:
             with open(sound_path, 'rb') as sound_file:
                 await update.message.reply_voice(
@@ -726,6 +729,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
         except Exception as e:
             logger.warning(f"Could not send sound file: {e}")
+    else:
+        logger.info(f"Sound file not found: {sound_path}")
     
     keyboard = [
         [InlineKeyboardButton(f"Ask {angel_name} Again", callback_data=f'angel_{angel_type}')],
@@ -755,6 +760,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
