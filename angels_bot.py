@@ -362,6 +362,7 @@ class DatabaseManager:
         elif angel_type == 'dark':
             return 'sounds/dark_angel.ogg'
         return None
+        
         def get_image_path(self, angel_type, response_number):
         """
         Returns the path to the image file for the specified angel type and response number
@@ -754,4 +755,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
