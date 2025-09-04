@@ -362,6 +362,19 @@ class DatabaseManager:
         elif angel_type == 'dark':
             return 'sounds/dark_angel.ogg'
         return None
+        def get_image_path(self, angel_type, response_number):
+        """
+        Returns the path to the image file for the specified angel type and response number
+        """
+        if angel_type == 'light':
+            folder = 'luce'
+        elif angel_type == 'dark':
+            folder = 'oscurità'
+        else:
+            return None
+        
+        image_path = f'images/{folder}/risposta {response_number}.png'
+        return image_path if os.path.exists(image_path) else None
     
     def log_question(self, user_id, angel_type, response_id, question_text=""):
         conn = sqlite3.connect(self.db_path)
@@ -741,3 +754,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
