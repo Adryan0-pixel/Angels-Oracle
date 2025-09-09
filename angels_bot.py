@@ -2,9 +2,12 @@ import os
 import sqlite3
 import logging
 import random
+import asyncio
+import aiohttp
+import json
 from datetime import datetime, timedelta
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, PreCheckoutQueryHandler, ContextTypes, filters
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, filters
 from telegram.constants import ParseMode
 import re
 
@@ -13,8 +16,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Environment variables
 BOT_TOKEN = os.getenv('BOT_TOKEN')
-PAYMENT_TOKEN = os.getenv('PAYMENT_TOKEN')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 DATABASE_PATH = 'angels_bot.db'
 
 SUBSCRIPTIONS = {
@@ -81,11 +85,174 @@ def validate_birth_info(text):
     
     return True, None, name, parsed_date
 
+class SafetyFilters:
+    def __init__(self):
+        self.forbidden_patterns = [
+            r'\b(kill|death|suicide|harm|hurt)\b',
+            r'\b(medical|doctor|medicine|drug|pill)\b', 
+            r'\b(invest|money|buy|sell|stock|crypto)\b',
+            r'\b(marry|divorce|break up|leave him/her)\b',
+            r'\b(definitely|certainly|will happen|guaranteed)\b',
+            r'\b(never|always|impossible|definitely not)\b'
+        ]
+    
+    def validate_response(self, response: str) -> dict:
+        # Check forbidden content
+        for pattern in self.forbidden_patterns:
+            if re.search(pattern, response.lower()):
+                return {
+                    'is_safe': False,
+                    'reason': f'Contains forbidden pattern: {pattern}'
+                }
+        
+        # Check length
+        if len(response) > 200:
+            return {
+                'is_safe': False,
+                'reason': 'Response too long'
+            }
+        
+        # Check if sounds mystical enough
+        mystical_score = sum(1 for word in ['divine', 'spiritual', 'energy', 'light', 'shadow', 'wisdom', 'guidance', 'mystery'] 
+                           if word in response.lower())
+        
+        if mystical_score < 1:
+            return {
+                'is_safe': False,
+                'reason': 'Not mystical enough'
+            }
+        
+        return {
+            'is_safe': True,
+            'content': response
+        }
+
+class AngelAISystem:
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        self.safety_filters = SafetyFilters()
+        self.fallback_responses = self._load_fallback_responses()
+        
+    def _load_fallback_responses(self):
+        return {
+            'light': [
+                "Golden light surrounds your path ahead, trust in the divine guidance that flows through you",
+                "The angels whisper of hope approaching, open your heart to receive their blessing",
+                "Luminous energy flows toward your dreams, have faith in the journey unfolding",
+                "Divine protection watches over you, step forward with courage and grace",
+                "The morning star illuminates your way, follow its light toward your highest good"
+            ],
+            'dark': [
+                "From shadow's depth emerges hidden wisdom, listen to the whispers of your soul",
+                "The night reveals truths daylight conceals, embrace the mystery within",
+                "Ancient knowledge stirs in darkness, trust your deepest intuition",
+                "The void holds answers for brave seekers, dare to look beyond the surface",
+                "Shadow and light dance together within you, honor both sides of your nature"
+            ]
+        }
+    
+    async def generate_response(self, angel_type: str, user_question: str, user_name: str, birth_date: str) -> dict:
+        if not self.api_key:
+            return self._get_fallback_response(angel_type)
+        
+        try:
+            prompt = self._create_prompt(angel_type, user_question, user_name, birth_date)
+            ai_response = await self._call_openai(prompt)
+            
+            # Validate response
+            filtered_response = self.safety_filters.validate_response(ai_response)
+            
+            if not filtered_response['is_safe']:
+                logger.warning(f"AI response filtered: {filtered_response['reason']}")
+                return self._get_fallback_response(angel_type)
+            
+            return {
+                'success': True,
+                'response': filtered_response['content'],
+                'method': 'ai',
+                'has_image': random.random() < 0.33,  # 1/3 chance for image
+                'angel_type': angel_type
+            }
+            
+        except Exception as e:
+            logger.warning(f"AI system failed: {e}")
+            return self._get_fallback_response(angel_type)
+    
+    def _create_prompt(self, angel_type: str, question: str, name: str, birth_date: str) -> str:
+        angel_config = {
+            'light': {
+                'name': 'Seraphiel',
+                'traits': 'hopeful, protective, warm, encouraging',
+                'elements': 'golden light, divine protection, celestial guidance, healing energy',
+                'tone': 'uplifting and compassionate'
+            },
+            'dark': {
+                'name': 'Nyxareth', 
+                'traits': 'mysterious, intuitive, revealing, transformative',
+                'elements': 'shadow wisdom, hidden truths, ancient mysteries, transformative power',
+                'tone': 'profound and mystical'
+            }
+        }
+        
+        config = angel_config[angel_type]
+        
+        return f"""You are {config['name']}, the Angel of {'Light' if angel_type == 'light' else 'Darkness'}.
+
+STRICT GUIDELINES:
+- Provide mystical guidance in {config['tone']} tone
+- Keep response under 35 words
+- Use elements: {config['elements']}
+- NO specific future predictions
+- NO medical, financial, or legal advice  
+- Keep language poetic and spiritually ambiguous
+- Focus on inner wisdom and personal growth
+
+User: {name} (born {birth_date})
+Question: "{question}"
+
+Provide a brief mystical response as {config['name']} that offers spiritual guidance while staying true to your {angel_type} nature."""
+
+    async def _call_openai(self, prompt: str) -> str:
+        url = "https://api.openai.com/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        data = {
+            "model": "gpt-3.5-turbo",
+            "messages": [
+                {"role": "system", "content": "You are a mystical oracle providing brief spiritual guidance for entertainment purposes only."},
+                {"role": "user", "content": prompt}
+            ],
+            "max_tokens": 50,
+            "temperature": 0.8,
+            "presence_penalty": 0.3,
+            "frequency_penalty": 0.3
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, headers=headers, json=data) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    return result['choices'][0]['message']['content'].strip()
+                else:
+                    raise Exception(f"OpenAI API error: {response.status}")
+    
+    def _get_fallback_response(self, angel_type: str) -> dict:
+        response_text = random.choice(self.fallback_responses[angel_type])
+        return {
+            'success': True,
+            'response': response_text,
+            'method': 'fallback',
+            'has_image': random.random() < 0.33,
+            'angel_type': angel_type
+        }
+
 class DatabaseManager:
     def __init__(self, db_path):
         self.db_path = db_path
         self.init_database()
-        self.populate_responses()
     
     def init_database(self):
         conn = sqlite3.connect(self.db_path)
@@ -108,134 +275,19 @@ class DatabaseManager:
         ''')
         
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS responses (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                response_number INTEGER,
-                angel_type TEXT NOT NULL,
-                text_content TEXT NOT NULL,
-                has_image BOOLEAN DEFAULT FALSE,
-                image_url TEXT,
-                language TEXT DEFAULT 'en'
-            )
-        ''')
-        
-        cursor.execute('''
             CREATE TABLE IF NOT EXISTS question_log (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER,
                 angel_type TEXT,
-                response_id INTEGER,
                 question_text TEXT,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (user_id)
+                response_text TEXT,
+                response_method TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         
         conn.commit()
         conn.close()
-    
-    def populate_responses(self):
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT COUNT(*) FROM responses")
-        if cursor.fetchone()[0] > 0:
-            conn.close()
-            return
-        
-        # Immagini disponibili
-        light_images = [
-            "https://i.imgur.com/LrHHiiY.png",
-            "https://i.imgur.com/IQtu3lu.png"
-        ]
-        
-        dark_images = [
-            "https://i.imgur.com/UYpzB4s.png",
-            "https://i.imgur.com/u6lZUOZ.png",
-            "https://i.imgur.com/MDMkJSO.png"
-        ]
-        
-        light_responses = [
-            (1, "I see golden light in your future, let it guide you toward joy", True, light_images[0]),
-            (2, "The morning star reveals that hope approaches, have faith in your heart", False, None),
-            (3, "Luminous winds whisper that patience will be rewarded, bless this moment", False, None),
-            (4, "The light within you will shine brighter, prepare to welcome grace", False, None),
-            (5, "A bridge of light is being built for you, cross it with courage and faith", False, None),
-            (16, "I see wings of light protecting you in your journey, trust in divine protection", True, light_images[1]),
-            (27, "A golden door is opening before you, step through with hope and gratitude", False, None),
-            (31, "A golden thread weaves through your destiny, follow it with trust and wonder", False, None),
-            (46, "I see golden rain falling on your garden, let abundance grow in every corner", False, None),
-            (61, "Heaven's gate opens wider with each kind act, step through with generosity", False, None),
-            (74, "The sail of your dreams catches winds of opportunity, navigate toward your goals", False, None),
-            (76, "Sunrise paints your tomorrow with colors of possibility, wake to new chances", False, None),
-            (78, "Rainbows arch over your trials with promises of beauty, look up after storms", False, None),
-            (79, "Butterflies carry wishes on gossamer wings to the divine, release your desires", False, None),
-            (86, "Your guardian's wings cast shadows of protection, rest in their shelter", False, None),
-            (121, "Starlight weaves silver threads through your dreams, follow them to manifest reality", False, None),
-            (122, "Moonbeams paint pathways across your night sky, walk them toward your destiny", False, None),
-            (124, "Candlelight flickers with messages of hope, interpret their dancing shadows", False, None),
-            (126, "Angels collect your tears in crystal vials, transforming sorrow into wisdom", False, None),
-            (132, "The golden fleece awaits your heroic journey, embark on your personal quest", False, None),
-            (133, "The holy grail fills with whatever you truly need, drink from your authentic desires", False, None),
-            (134, "The philosopher's stone transforms your lead experiences into gold, embrace alchemy", False, None),
-            (136, "White horses carry your prayers across celestial plains, mount them with faith", False, None),
-            (137, "Doves deliver messages between earth and heaven, send your requests upward", False, None),
-            (138, "Eagles soar with visions of your highest potential, spread your wings and follow", False, None),
-            (139, "Swans glide gracefully through turbulent waters, embody their serene elegance", False, None),
-            (140, "Peacocks display your true colors with pride, show your authentic beauty", False, None),
-            (141, "Crystal caves echo with sounds of your healing, enter them with reverence", False, None),
-            (142, "Sacred springs bubble with waters of renewal, bathe in their restorative power", False, None),
-            (143, "Holy mountains offer perspectives from above, climb them for expanded vision", False, None),
-        ]
-        
-        dark_responses = [
-            (1, "From night's depths emerges that mystery will unveil itself, listen to your intuition", True, dark_images[0]),
-            (2, "Shadow whispers speak of secrets for you, prepare to discover the unexpected", False, None),
-            (3, "In the cup of shadow your future is mixed, drink with awareness", False, None),
-            (4, "Your soul's deep roots are strengthening, nurture the inner growth", False, None),
-            (5, "From midnight's embrace comes the gift of solitude, learn what silence teaches", False, None),
-            (6, "Dancing shadows show you must look beyond appearance, find the hidden truth", True, dark_images[1]),
-            (11, "The growing moon reveals your transformation has begun, embrace what you will become", False, None),
-            (13, "The full moon reveals your strength is at its peak, embrace your power", False, None),
-            (14, "The new moon reveals a new cycle begins, embrace the unknown", False, None),
-            (32, "From time's shadows emerges that truth will reveal itself, listen to your instinct", False, None),
-            (37, "The black mirror shows your hidden strengths, look deeper than surface fears", True, dark_images[2]),
-            (41, "Raven wings carry messages from your depths, decode the symbols they bring", False, None),
-            (42, "Wolf howls echo your primal knowing, remember the wildness you've forgotten", False, None),
-            (44, "Spider webs show intricate connections, weave the pattern that calls you", False, None),
-            (45, "Owl eyes pierce through illusion's veil, see the truth others fear to face", False, None),
-            (46, "In the cavern of your unconscious, treasures wait for the bold explorer", False, None),
-            (48, "In the forest of your dreams, wisdom grows for the patient wanderer", False, None),
-            (49, "In the ocean of your emotions, pearls form for the deep diver", False, None),
-            (67, "Your dark twin whispers truths you fear to hear, listen with courageous ears", False, None),
-            (94, "Below the noise of constant chatter, profound silence holds deep answers", False, None),
-            (101, "The cauldron of transformation bubbles with your becoming, stir it with intention", False, None),
-            (104, "The pentacle of protection shields your vulnerability, invoke it when needed", False, None),
-            (105, "Dusk contemplations prepare you for night's teachings, welcome the darkness", False, None),
-            (108, "Dawn reflections merge shadow and light within you, embrace your complexity", False, None),
-            (111, "The underworld rivers carry messages from your depths, decode their meaning", False, None),
-            (112, "The shadow realm mirrors show inverted truths, read them backwards", False, None),
-            (116, "Your inner vampire thirsts for authentic experience, feed it real encounters", False, None),
-            (118, "Your secret witch brews potions of possibility, trust her ancient recipes", False, None),
-            (119, "Your dormant dragon guards treasures of power, awaken it with courage", False, None),
-            (120, "Your sleeping phoenix prepares for rebirth through flames, surrender to transformation", False, None),
-        ]
-        
-        for response_num, text, has_image, image_url in light_responses:
-            cursor.execute(
-                "INSERT INTO responses (response_number, angel_type, text_content, has_image, image_url) VALUES (?, ?, ?, ?, ?)",
-                (response_num, 'light', text, has_image, image_url)
-            )
-        
-        for response_num, text, has_image, image_url in dark_responses:
-            cursor.execute(
-                "INSERT INTO responses (response_number, angel_type, text_content, has_image, image_url) VALUES (?, ?, ?, ?, ?)",
-                (response_num, 'dark', text, has_image, image_url)
-            )
-        
-        conn.commit()
-        conn.close()
-        logger.info(f"Database populated with {len(light_responses)} light and {len(dark_responses)} dark responses")
     
     def get_or_create_user(self, user_id, username=None, first_name=None):
         conn = sqlite3.connect(self.db_path)
@@ -356,26 +408,7 @@ class DatabaseManager:
         except ValueError:
             return 0
     
-    def get_random_response(self, angel_type):
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT * FROM responses WHERE angel_type = ?", (angel_type,))
-        responses = cursor.fetchall()
-        conn.close()
-        
-        if responses:
-            return random.choice(responses)
-        return None
-    
-    def get_sound_path(self, angel_type):
-        if angel_type == 'light':
-            return 'sounds/light_angel.mp3'
-        elif angel_type == 'dark':
-            return 'sounds/dark_angel.mp3'
-        return None
-    
-    def log_question(self, user_id, angel_type, response_id, question_text=""):
+    def log_question(self, user_id, angel_type, question_text, response_text, response_method):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
@@ -385,8 +418,8 @@ class DatabaseManager:
         )
         
         cursor.execute(
-            "INSERT INTO question_log (user_id, angel_type, response_id, question_text) VALUES (?, ?, ?, ?)",
-            (user_id, angel_type, response_id, question_text[:500])
+            "INSERT INTO question_log (user_id, angel_type, question_text, response_text, response_method) VALUES (?, ?, ?, ?, ?)",
+            (user_id, angel_type, question_text[:200], response_text[:300], response_method)
         )
         
         conn.commit()
@@ -408,7 +441,9 @@ class DatabaseManager:
         conn.commit()
         conn.close()
 
+# Initialize systems
 db = DatabaseManager(DATABASE_PATH)
+ai_system = AngelAISystem(OPENAI_API_KEY)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -442,7 +477,68 @@ async def show_setup_screen(update):
     if hasattr(update, 'callback_query') and update.callback_query:
         await update.callback_query.edit_message_text(welcome_text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
     else:
-        await update.message.reply_text(welcome_text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
+        await update.message.reply_text(formatted_response, parse_mode=ParseMode.MARKDOWN)
+    
+    # Send mystical image if response includes one
+    if response_data['has_image']:
+        # Use your Imgur images based on angel type
+        image_urls = {
+            'light': [
+                "https://i.imgur.com/LrHHiiY.png",
+                "https://i.imgur.com/IQtu3lu.png"
+            ],
+            'dark': [
+                "https://i.imgur.com/UYpzB4s.png", 
+                "https://i.imgur.com/u6lZUOZ.png",
+                "https://i.imgur.com/MDMkJSO.png"
+            ]
+        }
+        
+        try:
+            selected_image = random.choice(image_urls[angel_type])
+            await update.message.reply_photo(
+                photo=selected_image,
+                caption=f"🌟 A vision from {angel_name} appears before you...",
+                parse_mode=ParseMode.MARKDOWN
+            )
+        except Exception as e:
+            logger.warning(f"Could not send image: {e}")
+    
+    # Navigation buttons
+    keyboard = [
+        [InlineKeyboardButton(f"Ask {angel_name} Again", callback_data=f'angel_{angel_type}')],
+        [InlineKeyboardButton("Switch Angel", callback_data='back_main')],
+        [InlineKeyboardButton("💎 Upgrade Premium", callback_data='premium')]
+    ]
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        "The divine energies have spoken. What would you like to do next?",
+        reply_markup=reply_markup
+    )
+
+def main():
+    if not BOT_TOKEN:
+        logger.error("BOT_TOKEN environment variable not set!")
+        return
+    
+    # Log configuration status
+    if OPENAI_API_KEY:
+        logger.info("OpenAI API key found - AI responses enabled")
+    else:
+        logger.warning("OpenAI API key not found - using fallback responses only")
+    
+    application = Application.builder().token(BOT_TOKEN).build()
+    
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(handle_callback))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    
+    logger.info("Angels Oracle AI Bot started successfully!")
+    application.run_polling(drop_pending_updates=True)
+
+if __name__ == '__main__':
+    main()reply_text(welcome_text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
 
 async def show_main_menu(update):
     user_info = db.get_user_info(update.effective_user.id)
@@ -616,84 +712,6 @@ async def show_user_status(query, user_id):
     
     if not db.check_cooldown(user_id):
         minutes_left = db.get_time_until_next_question(user_id)
-        angel_name = "Seraphiel" if angel_type == 'light' else "Nyxareth"
-        await update.message.reply_text(
-            f"⏰ {angel_name} needs {minutes_left} more minutes to restore divine energy.\n\n"
-            f"Upgrade to Premium for shorter cooldowns!",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("💎 View Premium Plans", callback_data='premium')]
-            ])
-        )
-        return
-    
-    response = db.get_random_response(angel_type)
-    if not response:
-        await update.message.reply_text("⛔ Sorry, no responses available.")
-        return
-    
-    response_id, response_number, angel_type, text_content, has_image, image_url, language = response
-    
-    db.log_question(user_id, angel_type, response_id, text[:200])
-    
-    angel_name = "Seraphiel" if angel_type == 'light' else "Nyxareth"
-    angel_emoji = "✨" if angel_type == 'light' else "🖤"
-    formatted_response = f"{angel_emoji} *{text_content}*\n\n*- {angel_name}*"
-    
-    await update.message.reply_text(formatted_response, parse_mode=ParseMode.MARKDOWN)
-    
-    # Invia audio se disponibile
-    sound_path = db.get_sound_path(angel_type)
-    if sound_path and os.path.exists(sound_path):
-        try:
-            with open(sound_path, 'rb') as sound_file:
-                await update.message.reply_audio(
-                    audio=sound_file,
-                    caption=f"🎵 {angel_name}'s divine energy resonates...",
-                    parse_mode=ParseMode.MARKDOWN
-                )
-        except Exception as e:
-            logger.warning(f"Could not send sound file: {e}")
-    
-    # Invia immagine se disponibile
-    if has_image and image_url:
-        try:
-            await update.message.reply_photo(
-                photo=image_url,
-                caption=f"🌟 A vision from {angel_name} appears before you...",
-                parse_mode=ParseMode.MARKDOWN
-            )
-            logger.info(f"Sent image: {image_url}")
-        except Exception as e:
-            logger.warning(f"Could not send image: {e}")
-    
-    keyboard = [
-        [InlineKeyboardButton(f"Ask {angel_name} Again", callback_data=f'angel_{angel_type}')],
-        [InlineKeyboardButton("Switch Angel", callback_data='back_main')],
-        [InlineKeyboardButton("💎 Upgrade Premium", callback_data='premium')]
-    ]
-    
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
-        "The divine energies have spoken. What would you like to do next?",
-        reply_markup=reply_markup
-    )
-
-def main():
-    if not BOT_TOKEN:
-        logger.error("BOT_TOKEN environment variable not set!")
-        return
-    
-    application = Application.builder().token(BOT_TOKEN).build()
-    
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(handle_callback))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    
-    logger.info("Angels Oracle Bot started successfully!")
-    application.run_polling(drop_pending_updates=True)
-
-if __name__ == '__main__':
-    main()id)
         status_text += f"\n\n⏰ **Next question in:** {minutes_left} minutes"
     
     keyboard = [
@@ -740,6 +758,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     angel_type = context.user_data['selected_angel']
     
+    # Check question limits
     if not db.can_ask_question(user_id):
         await update.message.reply_text(
             "⛔ You have reached your question limit!\n\n"
@@ -750,5 +769,36 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     
+    # Check cooldown
     if not db.check_cooldown(user_id):
-        minutes_left = db.get_time_until_next_question(user_
+        minutes_left = db.get_time_until_next_question(user_id)
+        angel_name = "Seraphiel" if angel_type == 'light' else "Nyxareth"
+        await update.message.reply_text(
+            f"⏰ {angel_name} needs {minutes_left} more minutes to restore divine energy.\n\n"
+            f"Upgrade to Premium for shorter cooldowns!",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("💎 View Premium Plans", callback_data='premium')]
+            ])
+        )
+        return
+    
+    # Get user info for AI
+    user_info = db.get_user_info(user_id)
+    if not user_info:
+        await update.message.reply_text("❌ Please complete setup first with /start")
+        return
+    
+    user_name, birth_date_str = user_info
+    
+    # Generate AI response
+    response_data = await ai_system.generate_response(angel_type, text, user_name, birth_date_str)
+    
+    # Log the question and response
+    db.log_question(user_id, angel_type, text, response_data['response'], response_data['method'])
+    
+    # Send response
+    angel_name = "Seraphiel" if angel_type == 'light' else "Nyxareth"
+    angel_emoji = "✨" if angel_type == 'light' else "🖤"
+    formatted_response = f"{angel_emoji} *{response_data['response']}*\n\n*- {angel_name}*"
+    
+    await update.message.
