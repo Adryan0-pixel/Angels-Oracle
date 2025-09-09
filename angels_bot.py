@@ -820,24 +820,30 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.warning(f"Could not send image: {e}")
     
-    # Send mystical audio as voice message (fix per il problema audio)
+    # Send mystical audio using GitHub raw URLs
     audio_urls = {
-        'light': "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav",  # Esempio URL audio
-        'dark': "https://www.soundjay.com/misc/sounds/gong-1.wav"             # Esempio URL audio
+        'light': "https://raw.githubusercontent.com/Adryan0x-pixel/Angels-Oracle/main/sounds/light_angel.ogg",
+        'dark': "https://raw.githubusercontent.com/Adryan0x-pixel/Angels-Oracle/main/sounds/dark_angel.ogg"
     }
     
     try:
-        # Invia come voice message invece di audio file
         audio_url = audio_urls.get(angel_type)
         if audio_url:
-            # Per ora commentiamo l'audio finché non abbiamo URL validi
-            pass
-            # await update.message.reply_voice(
-            #     voice=audio_url,
-            #     caption=f"{angel_name}'s divine energy resonates..."
-            # )
+            # Invia come voice message per migliore esperienza utente
+            await update.message.reply_voice(
+                voice=audio_url,
+                caption=f"{angel_name}'s divine energy resonates..."
+            )
     except Exception as e:
         logger.warning(f"Could not send audio: {e}")
+        # Fallback: prova come audio normale se voice fallisce
+        try:
+            await update.message.reply_audio(
+                audio=audio_url,
+                caption=f"{angel_name}'s divine energy"
+            )
+        except Exception as e2:
+            logger.warning(f"Audio fallback also failed: {e2}")
     
     # Navigation buttons
     keyboard = [
