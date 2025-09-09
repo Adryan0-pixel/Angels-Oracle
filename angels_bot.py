@@ -22,9 +22,71 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 DATABASE_PATH = 'angels_bot.db'
 
 SUBSCRIPTIONS = {
-    'free': {'name': 'Free', 'questions': 50, 'cooldown': 30, 'price': 0},
-    'premium_6m': {'name': '6 Months Premium', 'questions': -1, 'cooldown': 15, 'price': 299},
-    'premium_12m': {'name': '12 Months Premium', 'questions': -1, 'cooldown': 10, 'price': 499}
+    'free': {'name': 'Free', 'questions': 50, 'cooldown': 15, 'price': 0},  # Ridotto da 30 a 15 minuti
+    'premium_6m': {'name': '6 Months Premium', 'questions': -1, 'cooldown': 10, 'price': 299},
+    'premium_12m': {'name': '12 Months Premium', 'questions': -1, 'cooldown': 5, 'price': 499}
+}
+
+# Immagini intro per presentazione angeli
+ANGEL_INTRO_IMAGES = {
+    'light': "https://i.imgur.com/RN2lEWd.png",  # Prima immagine che hai inviato (dorata)
+    'dark': "https://i.imgur.com/B21hnsr.png"   # Seconda immagine che hai inviato (scura)
+}
+
+# Tutte le immagini organizzate per angelo
+ANGEL_IMAGES = {
+    'light': [
+        "https://i.imgur.com/wTKZXU3.png",  # risposta 147
+        "https://i.imgur.com/iy3ruwG.png",  # risposta 149
+        "https://i.imgur.com/G2JXKMc.png",  # risposta 145
+        "https://i.imgur.com/xpDSvlo.png",  # risposta 46
+        "https://i.imgur.com/KpRUiMX.png",  # risposta 146
+        "https://i.imgur.com/sZMl8o9.png",  # risposta 31
+        "https://i.imgur.com/y3w6gjH.png",  # risposta 78
+        "https://i.imgur.com/4gc7waA.png",  # risposta 144
+        "https://i.imgur.com/R3wEtPE.png",  # risposta 16
+        "https://i.imgur.com/QhNHpjy.png",  # risposta 86
+        "https://i.imgur.com/lW80y0d.png",  # risposta 27
+        "https://i.imgur.com/GbEZ1m8.png",  # risposta 134
+        "https://i.imgur.com/XvxWqhF.png",  # risposta 139
+        "https://i.imgur.com/gW0UJSW.png",  # risposta 61
+        "https://i.imgur.com/qsvq341.png",  # risposta 76
+        "https://i.imgur.com/eoFmVj4.png",  # risposta 79
+        "https://i.imgur.com/mtIoH3m.png",  # risposta 136
+        "https://i.imgur.com/xRYMkP7.png",  # risposta 74
+        "https://i.imgur.com/cBSqwvP.png",  # risposta 142
+        "https://i.imgur.com/iY8Hzfm.png",  # risposta 143
+        "https://i.imgur.com/gurjp20.png",  # risposta 141
+        "https://i.imgur.com/FprhPf2.png",  # risposta 140
+        "https://i.imgur.com/S1vRJMH.png",  # risposta 137
+        "https://i.imgur.com/Tp519mm.png"   # risposta 138
+    ],
+    'dark': [
+        "https://i.imgur.com/RN2lEWd.png",  # risposta 171
+        "https://i.imgur.com/B21hnsr.png",  # risposta 176
+        "https://i.imgur.com/ScrZU4h.png",  # risposta 119
+        "https://i.imgur.com/1Tjk0IF.png",  # risposta 116
+        "https://i.imgur.com/LyVDBf5.png",  # risposta 151
+        "https://i.imgur.com/idmquVh.png",  # risposta 118
+        "https://i.imgur.com/gZEmHby.png",  # risposta 11
+        "https://i.imgur.com/ANUmiCm.png",  # risposta 14
+        "https://i.imgur.com/56xPxCq.png",  # risposta 13
+        "https://i.imgur.com/X3goLsC.png",  # risposta 120
+        "https://i.imgur.com/rduetz2.png",  # risposta 112
+        "https://i.imgur.com/edXa0WE.png",  # risposta 105
+        "https://i.imgur.com/CZDefe4.png",  # risposta 108
+        "https://i.imgur.com/h8HWhPB.png",  # risposta 101
+        "https://i.imgur.com/Azr3gFp.png",  # risposta 104
+        "https://i.imgur.com/Nx7hmOy.png",  # risposta 111
+        "https://i.imgur.com/5ZfVK8e.png",  # risposta 32
+        "https://i.imgur.com/WSWnR8D.png",  # risposta 42
+        "https://i.imgur.com/DHVn9ZN.png",  # risposta 44
+        "https://i.imgur.com/GnSJ4Oo.png",  # risposta 45
+        "https://i.imgur.com/EOdsyEJ.png",  # risposta 46
+        "https://i.imgur.com/rRNJBAK.png",  # risposta 48
+        "https://i.imgur.com/Peqrqvk.png",  # risposta 49
+        "https://i.imgur.com/I60Bu0x.png"   # risposta 6
+    ]
 }
 
 def validate_birth_info(text):
@@ -493,7 +555,7 @@ Hope, protection, and divine guidance
 ANGEL OF DARKNESS (Nyxareth)
 Hidden truths, transformation, and deep wisdom
 
-Free users: 50 questions total
+Free users: 50 questions total, 15min cooldown
 Premium users: Unlimited questions + shorter cooldowns
 
 Disclaimer: This is for entertainment purposes only."""
@@ -551,7 +613,7 @@ Seraphiel (Light) - Hope, healing, protection
 Nyxareth (Darkness) - Hidden truths, transformation
 
 Limits:
-Free: 50 total questions, 30min cooldown
+Free: 50 total questions, 15min cooldown
 Premium: Unlimited questions, shorter cooldowns
 
 All responses are generated for entertainment only."""
@@ -589,6 +651,16 @@ Ask me your question and I will provide divine guidance tailored to your spiritu
 
 Type your question now..."""
     
+    # Invia immagine di presentazione dell'angelo
+    try:
+        intro_image = ANGEL_INTRO_IMAGES[angel_type]
+        await query.message.reply_photo(
+            photo=intro_image,
+            caption=f"{angel_name} appears before you..."
+        )
+    except Exception as e:
+        logger.warning(f"Could not send intro image: {e}")
+    
     keyboard = [
         [InlineKeyboardButton("Back to Angels", callback_data='back_main')]
     ]
@@ -601,16 +673,16 @@ async def show_premium_plans(query):
 
 FREE PLAN
 - 50 questions total (shared between angels)
-- 30 minutes cooldown between questions
+- 15 minutes cooldown between questions
 
 6 MONTHS PREMIUM - €2.99
 - Unlimited questions
-- 15 minutes cooldown
+- 10 minutes cooldown
 - Priority support
 
 12 MONTHS PREMIUM - €4.99
 - Unlimited questions  
-- 10 minutes cooldown
+- 5 minutes cooldown
 - Priority support
 
 Payments are secure and processed by Telegram"""
@@ -739,27 +811,33 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Send mystical image if response includes one
     if response_data['has_image']:
-        # Use your Imgur images based on angel type
-        image_urls = {
-            'light': [
-                "https://i.imgur.com/LrHHiiY.png",
-                "https://i.imgur.com/IQtu3lu.png"
-            ],
-            'dark': [
-                "https://i.imgur.com/UYpzB4s.png", 
-                "https://i.imgur.com/u6lZUOZ.png",
-                "https://i.imgur.com/MDMkJSO.png"
-            ]
-        }
-        
         try:
-            selected_image = random.choice(image_urls[angel_type])
+            selected_image = random.choice(ANGEL_IMAGES[angel_type])
             await update.message.reply_photo(
                 photo=selected_image,
                 caption=f"A vision from {angel_name} appears before you..."
             )
         except Exception as e:
             logger.warning(f"Could not send image: {e}")
+    
+    # Send mystical audio as voice message (fix per il problema audio)
+    audio_urls = {
+        'light': "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav",  # Esempio URL audio
+        'dark': "https://www.soundjay.com/misc/sounds/gong-1.wav"             # Esempio URL audio
+    }
+    
+    try:
+        # Invia come voice message invece di audio file
+        audio_url = audio_urls.get(angel_type)
+        if audio_url:
+            # Per ora commentiamo l'audio finché non abbiamo URL validi
+            pass
+            # await update.message.reply_voice(
+            #     voice=audio_url,
+            #     caption=f"{angel_name}'s divine energy resonates..."
+            # )
+    except Exception as e:
+        logger.warning(f"Could not send audio: {e}")
     
     # Navigation buttons
     keyboard = [
