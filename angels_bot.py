@@ -32,7 +32,7 @@ def validate_birth_info(text):
     parts = text.split()
     
     if len(parts) < 2:
-        return False, "Please provide both your name and birth date.\nExample: 'Maria 15/03/1990'", None, None
+        return False, "Please provide both your name and birth date. Example: 'Maria 15/03/1990'", None, None
     
     name_parts = parts[:-1]
     date_part = parts[-1]
@@ -70,7 +70,7 @@ def validate_birth_info(text):
                 continue
     
     if not parsed_date:
-        return False, "Invalid date format. Please use DD/MM/YYYY format.\nExample: '15/03/1990'", None, None
+        return False, "Invalid date format. Please use DD/MM/YYYY format. Example: '15/03/1990'", None, None
     
     if parsed_date > datetime.now():
         return False, "Birth date cannot be in the future. Please enter a valid birth date.", None, None
@@ -455,29 +455,287 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await show_setup_screen(update)
 
 async def show_setup_screen(update):
-    welcome_text = """✨ **Welcome to Angels Oracle Bot!** 🌙
+    welcome_text = """Welcome to Angels Oracle Bot!
 
-*Receive divine guidance from two mystical angels*
+Receive divine guidance from two mystical angels
 
-📝 **To personalize your experience, please provide:**
-• Your first name
-• Your birth date (DD/MM/YYYY)
+To personalize your experience, please provide:
+- Your first name
+- Your birth date (DD/MM/YYYY)
 
-**Example:** `Maria 15/03/1990`
+Example: Maria 15/03/1990
 
-⚠️ *This information is used only for entertainment purposes. All responses are fictional.*"""
+This information is used only for entertainment purposes. All responses are fictional."""
     
     keyboard = [
-        [InlineKeyboardButton("ℹ️ How it Works", callback_data='how_it_works')],
-        [InlineKeyboardButton("💎 Premium Plans", callback_data='premium')]
+        [InlineKeyboardButton("How it Works", callback_data='how_it_works')],
+        [InlineKeyboardButton("Premium Plans", callback_data='premium')]
     ]
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     if hasattr(update, 'callback_query') and update.callback_query:
-        await update.callback_query.edit_message_text(welcome_text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
+        await update.callback_query.edit_message_text(welcome_text, reply_markup=reply_markup)
     else:
-        await update.message.reply_text(formatted_response, parse_mode=ParseMode.MARKDOWN)
+        await update.message.reply_text(welcome_text, reply_markup=reply_markup)
+
+async def show_main_menu(update):
+    user_info = db.get_user_info(update.effective_user.id)
+    user_name = user_info[0] if user_info else "Seeker"
+    
+    welcome_text = f"""Welcome back, {user_name}!
+
+Choose your divine guide:
+
+ANGEL OF LIGHT (Seraphiel)
+Hope, protection, and divine guidance
+
+ANGEL OF DARKNESS (Nyxareth)
+Hidden truths, transformation, and deep wisdom
+
+Free users: 50 questions total
+Premium users: Unlimited questions + shorter cooldowns
+
+Disclaimer: This is for entertainment purposes only."""
+    
+    keyboard = [
+        [InlineKeyboardButton("Angel of Light", callback_data='angel_light')],
+        [InlineKeyboardButton("Angel of Darkness", callback_data='angel_dark')],
+        [InlineKeyboardButton("Premium Plans", callback_data='premium')],
+        [InlineKeyboardButton("My Status", callback_data='status')],
+        [InlineKeyboardButton("Change My Info", callback_data='change_info')]
+    ]
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    if hasattr(update, 'callback_query') and update.callback_query:
+        await update.callback_query.edit_message_text(welcome_text, reply_markup=reply_markup)
+    else:
+        await update.message.reply_text(welcome_text, reply_markup=reply_markup)
+
+async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    data = query.data
+    
+    if data == 'how_it_works':
+        await show_how_it_works(query)
+    elif data == 'change_info':
+        context.user_data['changing_info'] = True
+        await show_change_info_screen(query)
+    elif data == 'back_to_setup':
+        await show_setup_screen(query)
+    elif data == 'back_main':
+        await show_main_menu(query)
+    elif data.startswith('angel_'):
+        angel_type = 'light' if data == 'angel_light' else 'dark'
+        context.user_data['selected_angel'] = angel_type
+        await show_angel_intro(query, angel_type)
+    elif data == 'premium':
+        await show_premium_plans(query)
+    elif data == 'status':
+        await show_user_status(query, user_id)
+
+async def show_how_it_works(query):
+    text = """How Angels Oracle Works
+
+1. Setup: Provide your name and birth date
+2. Choose: Select Angel of Light or Darkness  
+3. Ask: Type your question
+4. Receive: Get personalized divine guidance
+
+The Angels:
+Seraphiel (Light) - Hope, healing, protection
+Nyxareth (Darkness) - Hidden truths, transformation
+
+Limits:
+Free: 50 total questions, 30min cooldown
+Premium: Unlimited questions, shorter cooldowns
+
+All responses are generated for entertainment only."""
+    
+    keyboard = [[InlineKeyboardButton("Back", callback_data='back_to_setup')]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(text, reply_markup=reply_markup)
+
+async def show_change_info_screen(query):
+    text = """Change Your Information
+
+Please provide your updated information:
+- Your first name
+- Your birth date (DD/MM/YYYY)
+
+Example: John 25/12/1985"""
+    
+    keyboard = [[InlineKeyboardButton("Cancel", callback_data='back_main')]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(text, reply_markup=reply_markup)
+
+async def show_angel_intro(query, angel_type):
+    if angel_type == 'light':
+        angel_name = "Seraphiel"
+        angel_message = "I am Seraphiel, the Angel of Light. I bring hope, protection, and divine wisdom to guide you toward joy and fulfillment."
+    else:
+        angel_name = "Nyxareth"  
+        angel_message = "I am Nyxareth, the Angel of Darkness. I reveal hidden truths and guide your transformation through the mysteries of the shadow realm."
+    
+    intro_text = f"""{angel_message}
+
+Ask me your question and I will provide divine guidance tailored to your spiritual journey.
+
+Type your question now..."""
+    
+    keyboard = [
+        [InlineKeyboardButton("Back to Angels", callback_data='back_main')]
+    ]
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(intro_text, reply_markup=reply_markup)
+
+async def show_premium_plans(query):
+    text = """Premium Plans
+
+FREE PLAN
+- 50 questions total (shared between angels)
+- 30 minutes cooldown between questions
+
+6 MONTHS PREMIUM - €2.99
+- Unlimited questions
+- 15 minutes cooldown
+- Priority support
+
+12 MONTHS PREMIUM - €4.99
+- Unlimited questions  
+- 10 minutes cooldown
+- Priority support
+
+Payments are secure and processed by Telegram"""
+    
+    keyboard = [
+        [InlineKeyboardButton("Back", callback_data='back_main')]
+    ]
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(text, reply_markup=reply_markup)
+
+async def show_user_status(query, user_id):
+    conn = sqlite3.connect(DATABASE_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT subscription_type, questions_used, user_name FROM users WHERE user_id = ?", (user_id,))
+    result = cursor.fetchone()
+    conn.close()
+    
+    if not result:
+        await query.edit_message_text("User not found. Please use /start")
+        return
+    
+    sub_type, questions_used, user_name = result
+    sub_info = SUBSCRIPTIONS[sub_type]
+    
+    remaining = "Unlimited" if sub_info['questions'] == -1 else max(0, sub_info['questions'] - questions_used)
+    
+    status_text = f"""Your Status
+
+Name: {user_name or 'Not set'}
+Plan: {sub_info['name']}
+Questions Used: {questions_used}
+Questions Remaining: {remaining}
+Cooldown: {sub_info['cooldown']} minutes"""
+    
+    if not db.check_cooldown(user_id):
+        minutes_left = db.get_time_until_next_question(user_id)
+        status_text += f"\n\nNext question in: {minutes_left} minutes"
+    
+    keyboard = [
+        [InlineKeyboardButton("Upgrade to Premium", callback_data='premium')],
+        [InlineKeyboardButton("Back", callback_data='back_main')]
+    ]
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(status_text, reply_markup=reply_markup)
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    text = update.message.text
+    
+    if not db.has_completed_setup(user_id) or context.user_data.get('changing_info', False):
+        is_valid, error_msg, name, birth_date = validate_birth_info(text)
+        
+        if not is_valid:
+            await update.message.reply_text(f"Error: {error_msg}")
+            return
+        
+        db.update_user_info(user_id, name, birth_date)
+        
+        if context.user_data.get('changing_info', False):
+            context.user_data['changing_info'] = False
+            await update.message.reply_text(f"Your information has been updated successfully, {name}!")
+            await show_main_menu(update)
+        else:
+            await update.message.reply_text(f"Welcome, {name}! Your birth information has been recorded.")
+            await show_main_menu(update)
+        return
+    
+    if 'selected_angel' not in context.user_data:
+        keyboard = [
+            [InlineKeyboardButton("Angel of Light", callback_data='angel_light')],
+            [InlineKeyboardButton("Angel of Darkness", callback_data='angel_dark')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(
+            "Please choose your Angel first!",
+            reply_markup=reply_markup
+        )
+        return
+    
+    angel_type = context.user_data['selected_angel']
+    
+    # Check question limits
+    if not db.can_ask_question(user_id):
+        await update.message.reply_text(
+            "You have reached your question limit!\n\nUpgrade to Premium for unlimited questions:",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("View Premium Plans", callback_data='premium')]
+            ])
+        )
+        return
+    
+    # Check cooldown
+    if not db.check_cooldown(user_id):
+        minutes_left = db.get_time_until_next_question(user_id)
+        angel_name = "Seraphiel" if angel_type == 'light' else "Nyxareth"
+        await update.message.reply_text(
+            f"{angel_name} needs {minutes_left} more minutes to restore divine energy.\n\nUpgrade to Premium for shorter cooldowns!",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("View Premium Plans", callback_data='premium')]
+            ])
+        )
+        return
+    
+    # Get user info for AI
+    user_info = db.get_user_info(user_id)
+    if not user_info:
+        await update.message.reply_text("Please complete setup first with /start")
+        return
+    
+    user_name, birth_date_str = user_info
+    
+    # Generate AI response
+    response_data = await ai_system.generate_response(angel_type, text, user_name, birth_date_str)
+    
+    # Log the question and response
+    db.log_question(user_id, angel_type, text, response_data['response'], response_data['method'])
+    
+    # Send response
+    angel_name = "Seraphiel" if angel_type == 'light' else "Nyxareth"
+    formatted_response = f"*{response_data['response']}*\n\n- {angel_name}"
+    
+    await update.message.reply_text(formatted_response, parse_mode=ParseMode.MARKDOWN)
     
     # Send mystical image if response includes one
     if response_data['has_image']:
@@ -498,8 +756,7 @@ async def show_setup_screen(update):
             selected_image = random.choice(image_urls[angel_type])
             await update.message.reply_photo(
                 photo=selected_image,
-                caption=f"🌟 A vision from {angel_name} appears before you...",
-                parse_mode=ParseMode.MARKDOWN
+                caption=f"A vision from {angel_name} appears before you..."
             )
         except Exception as e:
             logger.warning(f"Could not send image: {e}")
@@ -508,7 +765,7 @@ async def show_setup_screen(update):
     keyboard = [
         [InlineKeyboardButton(f"Ask {angel_name} Again", callback_data=f'angel_{angel_type}')],
         [InlineKeyboardButton("Switch Angel", callback_data='back_main')],
-        [InlineKeyboardButton("💎 Upgrade Premium", callback_data='premium')]
+        [InlineKeyboardButton("Upgrade Premium", callback_data='premium')]
     ]
     
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -538,267 +795,4 @@ def main():
     application.run_polling(drop_pending_updates=True)
 
 if __name__ == '__main__':
-    main()reply_text(welcome_text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
-
-async def show_main_menu(update):
-    user_info = db.get_user_info(update.effective_user.id)
-    user_name = user_info[0] if user_info else "Seeker"
-    
-    welcome_text = f"""✨ **Welcome back, {user_name}!** 🌙
-
-**Choose your divine guide:**
-
-✨ **Angel of Light (Seraphiel)**
-*Hope, protection, and divine guidance*
-
-🖤 **Angel of Darkness (Nyxareth)**
-*Hidden truths, transformation, and deep wisdom*
-
-**Free users:** 50 questions total
-**Premium users:** Unlimited questions + shorter cooldowns
-
-⚠️ *Disclaimer: This is for entertainment purposes only.*"""
-    
-    keyboard = [
-        [InlineKeyboardButton("✨ Angel of Light", callback_data='angel_light')],
-        [InlineKeyboardButton("🖤 Angel of Darkness", callback_data='angel_dark')],
-        [InlineKeyboardButton("💎 Premium Plans", callback_data='premium')],
-        [InlineKeyboardButton("ℹ️ My Status", callback_data='status')],
-        [InlineKeyboardButton("⚙️ Change My Info", callback_data='change_info')]
-    ]
-    
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    if hasattr(update, 'callback_query') and update.callback_query:
-        await update.callback_query.edit_message_text(welcome_text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
-    else:
-        await update.message.reply_text(welcome_text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
-
-async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    
-    user_id = query.from_user.id
-    data = query.data
-    
-    if data == 'how_it_works':
-        await show_how_it_works(query)
-    elif data == 'change_info':
-        context.user_data['changing_info'] = True
-        await show_change_info_screen(query)
-    elif data == 'back_to_setup':
-        await show_setup_screen(query)
-    elif data == 'back_main':
-        await show_main_menu(query)
-    elif data.startswith('angel_'):
-        angel_type = 'light' if data == 'angel_light' else 'dark'
-        context.user_data['selected_angel'] = angel_type
-        await show_angel_intro(query, angel_type)
-    elif data == 'premium':
-        await show_premium_plans(query)
-    elif data == 'status':
-        await show_user_status(query, user_id)
-
-async def show_how_it_works(query):
-    text = """ℹ️ **How Angels Oracle Works**
-
-1️⃣ **Setup**: Provide your name and birth date
-2️⃣ **Choose**: Select Angel of Light or Darkness  
-3️⃣ **Ask**: Type your question
-4️⃣ **Receive**: Get personalized divine guidance
-
-**The Angels:**
-✨ **Seraphiel (Light)** - Hope, healing, protection
-🖤 **Nyxareth (Darkness)** - Hidden truths, transformation
-
-**Limits:**
-• Free: 50 total questions, 30min cooldown
-• Premium: Unlimited questions, shorter cooldowns
-
-*All responses are generated for entertainment only.*"""
-    
-    keyboard = [[InlineKeyboardButton("← Back", callback_data='back_to_setup')]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    await query.edit_message_text(text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
-
-async def show_change_info_screen(query):
-    text = """⚙️ **Change Your Information**
-
-Please provide your updated information:
-• Your first name
-• Your birth date (DD/MM/YYYY)
-
-**Example:** `John 25/12/1985`"""
-    
-    keyboard = [[InlineKeyboardButton("← Cancel", callback_data='back_main')]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    await query.edit_message_text(text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
-
-async def show_angel_intro(query, angel_type):
-    if angel_type == 'light':
-        angel_name = "Seraphiel"
-        angel_message = "I am Seraphiel, the Angel of Light. I bring hope, protection, and divine wisdom to guide you toward joy and fulfillment."
-        angel_emoji = "✨"
-    else:
-        angel_name = "Nyxareth"  
-        angel_message = "I am Nyxareth, the Angel of Darkness. I reveal hidden truths and guide your transformation through the mysteries of the shadow realm."
-        angel_emoji = "🖤"
-    
-    intro_text = f"""{angel_emoji} **{angel_message}** {angel_emoji}
-
-Ask me your question and I will provide divine guidance tailored to your spiritual journey.
-
-*Type your question now...*"""
-    
-    keyboard = [
-        [InlineKeyboardButton("← Back to Angels", callback_data='back_main')]
-    ]
-    
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.edit_message_text(intro_text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
-
-async def show_premium_plans(query):
-    text = """💎 **Premium Plans** 💎
-
-🆓 **Free Plan**
-• 50 questions total (shared between angels)
-• 30 minutes cooldown between questions
-
-💎 **6 Months Premium** - €2.99
-• Unlimited questions
-• 15 minutes cooldown
-• Priority support
-
-💎💎 **12 Months Premium** - €4.99
-• Unlimited questions  
-• 10 minutes cooldown
-• Priority support
-
-*Payments are secure and processed by Telegram*"""
-    
-    keyboard = [
-        [InlineKeyboardButton("← Back", callback_data='back_main')]
-    ]
-    
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.edit_message_text(text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
-
-async def show_user_status(query, user_id):
-    conn = sqlite3.connect(DATABASE_PATH)
-    cursor = conn.cursor()
-    
-    cursor.execute("SELECT subscription_type, questions_used, user_name FROM users WHERE user_id = ?", (user_id,))
-    result = cursor.fetchone()
-    conn.close()
-    
-    if not result:
-        await query.edit_message_text("User not found. Please use /start")
-        return
-    
-    sub_type, questions_used, user_name = result
-    sub_info = SUBSCRIPTIONS[sub_type]
-    
-    remaining = "Unlimited" if sub_info['questions'] == -1 else max(0, sub_info['questions'] - questions_used)
-    
-    status_text = f"""📊 **Your Status** 📊
-
-**Name:** {user_name or 'Not set'}
-**Plan:** {sub_info['name']}
-**Questions Used:** {questions_used}
-**Questions Remaining:** {remaining}
-**Cooldown:** {sub_info['cooldown']} minutes"""
-    
-    if not db.check_cooldown(user_id):
-        minutes_left = db.get_time_until_next_question(user_id)
-        status_text += f"\n\n⏰ **Next question in:** {minutes_left} minutes"
-    
-    keyboard = [
-        [InlineKeyboardButton("💎 Upgrade to Premium", callback_data='premium')],
-        [InlineKeyboardButton("← Back", callback_data='back_main')]
-    ]
-    
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.edit_message_text(status_text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
-
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    text = update.message.text
-    
-    if not db.has_completed_setup(user_id) or context.user_data.get('changing_info', False):
-        is_valid, error_msg, name, birth_date = validate_birth_info(text)
-        
-        if not is_valid:
-            await update.message.reply_text(f"❌ {error_msg}")
-            return
-        
-        db.update_user_info(user_id, name, birth_date)
-        
-        if context.user_data.get('changing_info', False):
-            context.user_data['changing_info'] = False
-            await update.message.reply_text(f"✅ Your information has been updated successfully, {name}!")
-            await show_main_menu(update)
-        else:
-            await update.message.reply_text(f"✅ Welcome, {name}! Your birth information has been recorded.")
-            await show_main_menu(update)
-        return
-    
-    if 'selected_angel' not in context.user_data:
-        keyboard = [
-            [InlineKeyboardButton("✨ Angel of Light", callback_data='angel_light')],
-            [InlineKeyboardButton("🖤 Angel of Darkness", callback_data='angel_dark')]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text(
-            "Please choose your Angel first! ✨",
-            reply_markup=reply_markup
-        )
-        return
-    
-    angel_type = context.user_data['selected_angel']
-    
-    # Check question limits
-    if not db.can_ask_question(user_id):
-        await update.message.reply_text(
-            "⛔ You have reached your question limit!\n\n"
-            "Upgrade to Premium for unlimited questions:",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("💎 View Premium Plans", callback_data='premium')]
-            ])
-        )
-        return
-    
-    # Check cooldown
-    if not db.check_cooldown(user_id):
-        minutes_left = db.get_time_until_next_question(user_id)
-        angel_name = "Seraphiel" if angel_type == 'light' else "Nyxareth"
-        await update.message.reply_text(
-            f"⏰ {angel_name} needs {minutes_left} more minutes to restore divine energy.\n\n"
-            f"Upgrade to Premium for shorter cooldowns!",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("💎 View Premium Plans", callback_data='premium')]
-            ])
-        )
-        return
-    
-    # Get user info for AI
-    user_info = db.get_user_info(user_id)
-    if not user_info:
-        await update.message.reply_text("❌ Please complete setup first with /start")
-        return
-    
-    user_name, birth_date_str = user_info
-    
-    # Generate AI response
-    response_data = await ai_system.generate_response(angel_type, text, user_name, birth_date_str)
-    
-    # Log the question and response
-    db.log_question(user_id, angel_type, text, response_data['response'], response_data['method'])
-    
-    # Send response
-    angel_name = "Seraphiel" if angel_type == 'light' else "Nyxareth"
-    angel_emoji = "✨" if angel_type == 'light' else "🖤"
-    formatted_response = f"{angel_emoji} *{response_data['response']}*\n\n*- {angel_name}*"
-    
-    await update.message.
+    main()
