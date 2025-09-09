@@ -775,7 +775,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     text = update.message.text
     
-    if not db.has_completed_setup(user_id) or context.user_data.get('changing_info', False):
+    # Solo se l'utente non ha completato setup O sta deliberatamente cambiando info
+    if (not db.has_completed_setup(user_id)) or context.user_data.get('changing_info', False):
         is_valid, error_msg, name, birth_date = validate_birth_info(text)
         
         if not is_valid:
