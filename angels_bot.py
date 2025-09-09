@@ -6,8 +6,8 @@ import asyncio
 import aiohttp
 import json
 from datetime import datetime, timedelta
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, filters
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, PreCheckoutQueryHandler, ContextTypes, filters
 from telegram.constants import ParseMode
 import re
 
@@ -19,18 +19,19 @@ logger = logging.getLogger(__name__)
 # Environment variables
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+PAYMENT_TOKEN = "2051251535:TEST:OTk5MDA4ODgxLTAwNQ"
 DATABASE_PATH = 'angels_bot.db'
 
 SUBSCRIPTIONS = {
-    'free': {'name': 'Free', 'questions': 50, 'cooldown': 15, 'price': 0},  # Ridotto da 30 a 15 minuti
+    'free': {'name': 'Free', 'questions': 50, 'cooldown': 15, 'price': 0},
     'premium_6m': {'name': '6 Months Premium', 'questions': -1, 'cooldown': 10, 'price': 299},
     'premium_12m': {'name': '12 Months Premium', 'questions': -1, 'cooldown': 5, 'price': 499}
 }
 
 # Immagini intro per presentazione angeli
 ANGEL_INTRO_IMAGES = {
-    'light': "https://i.imgur.com/RN2lEWd.png",  # Prima immagine che hai inviato (dorata)
-    'dark': "https://i.imgur.com/B21hnsr.png"   # Seconda immagine che hai inviato (scura)
+    'light': "https://i.imgur.com/RN2lEWd.png",
+    'dark': "https://i.imgur.com/B21hnsr.png"
 }
 
 # Tutte le immagini organizzate per angelo
@@ -507,6 +508,39 @@ class DatabaseManager:
 db = DatabaseManager(DATABASE_PATH)
 ai_system = AngelAISystem(OPENAI_API_KEY)
 
+async def start_payment(update, context, plan_type):
+    """Avvia il processo di pagamento"""
+    prices = [LabeledPrice("Angels Oracle Premium", SUBSCRIPTIONS[plan_type]['price'])]
+    
+    await context.bot.send_invoice(
+        chat_id=update.effective_chat.id,
+        title=f"Angels Oracle {SUBSCRIPTIONS[plan_type]['name']}",
+        description="Unlimited questions to both Angels with shorter cooldowns",
+        payload=plan_type,
+        provider_token=PAYMENT_TOKEN,
+        currency="EUR",
+        prices=prices
+    )
+
+async def precheckout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Risponde alla pre-checkout query"""
+    query = update.pre_checkout_query
+    await query.answer(ok=True)
+
+async def successful_payment_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Gestisce pagamento completato"""
+    payment = update.message.successful_payment
+    user_id = update.effective_user.id
+    plan_type = payment.invoice_payload
+    
+    months = 6 if plan_type == 'premium_6m' else 12
+    db.update_subscription(user_id, plan_type, months)
+    
+    await update.message.reply_text(
+        f"Payment successful! You now have {SUBSCRIPTIONS[plan_type]['name']} access.\n"
+        f"Enjoy unlimited questions with {SUBSCRIPTIONS[plan_type]['cooldown']} minute cooldowns!"
+    )
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_data = db.get_or_create_user(user.id, user.username, user.first_name)
@@ -599,6 +633,10 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await show_premium_plans(query)
     elif data == 'status':
         await show_user_status(query, user_id)
+    elif data == 'buy_premium_6m':
+        await start_payment(query, context, 'premium_6m')
+    elif data == 'buy_premium_12m':
+        await start_payment(query, context, 'premium_12m')
 
 async def show_how_it_works(query):
     text = """How Angels Oracle Works
@@ -688,6 +726,8 @@ FREE PLAN
 Payments are secure and processed by Telegram"""
     
     keyboard = [
+        [InlineKeyboardButton("Buy 6 Months - €2.99", callback_data='buy_premium_6m')],
+        [InlineKeyboardButton("Buy 12 Months - €4.99", callback_data='buy_premium_12m')],
         [InlineKeyboardButton("Back", callback_data='back_main')]
     ]
     
@@ -869,11 +909,18 @@ def main():
     else:
         logger.warning("OpenAI API key not found - using fallback responses only")
     
+    if PAYMENT_TOKEN:
+        logger.info("Payment token found - payments enabled")
+    else:
+        logger.warning("Payment token not found - payments disabled")
+    
     application = Application.builder().token(BOT_TOKEN).build()
     
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(handle_callback))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    application.add_handler(PreCheckoutQueryHandler(precheckout_callback))
+    application.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_callback))
     
     logger.info("Angels Oracle AI Bot started successfully!")
     application.run_polling(drop_pending_updates=True)
