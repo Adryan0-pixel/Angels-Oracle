@@ -114,7 +114,7 @@ class DatabaseManager:
                 angel_type TEXT NOT NULL,
                 text_content TEXT NOT NULL,
                 has_image BOOLEAN DEFAULT FALSE,
-                image_path TEXT,
+                image_url TEXT,
                 language TEXT DEFAULT 'en'
             )
         ''')
@@ -143,82 +143,94 @@ class DatabaseManager:
             conn.close()
             return
         
+        # Immagini disponibili
+        light_images = [
+            "https://i.imgur.com/LrHHiiY.png",
+            "https://i.imgur.com/IQtu3lu.png"
+        ]
+        
+        dark_images = [
+            "https://i.imgur.com/UYpzB4s.png",
+            "https://i.imgur.com/u6lZUOZ.png",
+            "https://i.imgur.com/MDMkJSO.png"
+        ]
+        
         light_responses = [
-            (1, "I see golden light in your future, let it guide you toward joy", False),
-            (2, "The morning star reveals that hope approaches, have faith in your heart", False),
-            (3, "Luminous winds whisper that patience will be rewarded, bless this moment", False),
-            (4, "The light within you will shine brighter, prepare to welcome grace", False),
-            (5, "A bridge of light is being built for you, cross it with courage and faith", False),
-            (16, "I see wings of light protecting you in your journey, trust in divine protection", False),
-            (27, "A golden door is opening before you, step through with hope and gratitude", False),
-            (31, "A golden thread weaves through your destiny, follow it with trust and wonder", False),
-            (46, "I see golden rain falling on your garden, let abundance grow in every corner", False),
-            (61, "Heaven's gate opens wider with each kind act, step through with generosity", False),
-            (74, "The sail of your dreams catches winds of opportunity, navigate toward your goals", False),
-            (76, "Sunrise paints your tomorrow with colors of possibility, wake to new chances", False),
-            (78, "Rainbows arch over your trials with promises of beauty, look up after storms", False),
-            (79, "Butterflies carry wishes on gossamer wings to the divine, release your desires", False),
-            (86, "Your guardian's wings cast shadows of protection, rest in their shelter", False),
-            (121, "Starlight weaves silver threads through your dreams, follow them to manifest reality", False),
-            (122, "Moonbeams paint pathways across your night sky, walk them toward your destiny", False),
-            (124, "Candlelight flickers with messages of hope, interpret their dancing shadows", False),
-            (126, "Angels collect your tears in crystal vials, transforming sorrow into wisdom", False),
-            (132, "The golden fleece awaits your heroic journey, embark on your personal quest", False),
-            (133, "The holy grail fills with whatever you truly need, drink from your authentic desires", False),
-            (134, "The philosopher's stone transforms your lead experiences into gold, embrace alchemy", False),
-            (136, "White horses carry your prayers across celestial plains, mount them with faith", False),
-            (137, "Doves deliver messages between earth and heaven, send your requests upward", False),
-            (138, "Eagles soar with visions of your highest potential, spread your wings and follow", False),
-            (139, "Swans glide gracefully through turbulent waters, embody their serene elegance", False),
-            (140, "Peacocks display your true colors with pride, show your authentic beauty", False),
-            (141, "Crystal caves echo with sounds of your healing, enter them with reverence", False),
-            (142, "Sacred springs bubble with waters of renewal, bathe in their restorative power", False),
-            (143, "Holy mountains offer perspectives from above, climb them for expanded vision", False),
+            (1, "I see golden light in your future, let it guide you toward joy", True, light_images[0]),
+            (2, "The morning star reveals that hope approaches, have faith in your heart", False, None),
+            (3, "Luminous winds whisper that patience will be rewarded, bless this moment", False, None),
+            (4, "The light within you will shine brighter, prepare to welcome grace", False, None),
+            (5, "A bridge of light is being built for you, cross it with courage and faith", False, None),
+            (16, "I see wings of light protecting you in your journey, trust in divine protection", True, light_images[1]),
+            (27, "A golden door is opening before you, step through with hope and gratitude", False, None),
+            (31, "A golden thread weaves through your destiny, follow it with trust and wonder", False, None),
+            (46, "I see golden rain falling on your garden, let abundance grow in every corner", False, None),
+            (61, "Heaven's gate opens wider with each kind act, step through with generosity", False, None),
+            (74, "The sail of your dreams catches winds of opportunity, navigate toward your goals", False, None),
+            (76, "Sunrise paints your tomorrow with colors of possibility, wake to new chances", False, None),
+            (78, "Rainbows arch over your trials with promises of beauty, look up after storms", False, None),
+            (79, "Butterflies carry wishes on gossamer wings to the divine, release your desires", False, None),
+            (86, "Your guardian's wings cast shadows of protection, rest in their shelter", False, None),
+            (121, "Starlight weaves silver threads through your dreams, follow them to manifest reality", False, None),
+            (122, "Moonbeams paint pathways across your night sky, walk them toward your destiny", False, None),
+            (124, "Candlelight flickers with messages of hope, interpret their dancing shadows", False, None),
+            (126, "Angels collect your tears in crystal vials, transforming sorrow into wisdom", False, None),
+            (132, "The golden fleece awaits your heroic journey, embark on your personal quest", False, None),
+            (133, "The holy grail fills with whatever you truly need, drink from your authentic desires", False, None),
+            (134, "The philosopher's stone transforms your lead experiences into gold, embrace alchemy", False, None),
+            (136, "White horses carry your prayers across celestial plains, mount them with faith", False, None),
+            (137, "Doves deliver messages between earth and heaven, send your requests upward", False, None),
+            (138, "Eagles soar with visions of your highest potential, spread your wings and follow", False, None),
+            (139, "Swans glide gracefully through turbulent waters, embody their serene elegance", False, None),
+            (140, "Peacocks display your true colors with pride, show your authentic beauty", False, None),
+            (141, "Crystal caves echo with sounds of your healing, enter them with reverence", False, None),
+            (142, "Sacred springs bubble with waters of renewal, bathe in their restorative power", False, None),
+            (143, "Holy mountains offer perspectives from above, climb them for expanded vision", False, None),
         ]
         
         dark_responses = [
-            (1, "From night's depths emerges that mystery will unveil itself, listen to your intuition", False),
-            (2, "Shadow whispers speak of secrets for you, prepare to discover the unexpected", False),
-            (3, "In the cup of shadow your future is mixed, drink with awareness", False),
-            (4, "Your soul's deep roots are strengthening, nurture the inner growth", False),
-            (5, "From midnight's embrace comes the gift of solitude, learn what silence teaches", False),
-            (6, "Dancing shadows show you must look beyond appearance, find the hidden truth", False),
-            (11, "The growing moon reveals your transformation has begun, embrace what you will become", False),
-            (13, "The full moon reveals your strength is at its peak, embrace your power", False),
-            (14, "The new moon reveals a new cycle begins, embrace the unknown", False),
-            (32, "From time's shadows emerges that truth will reveal itself, listen to your instinct", False),
-            (37, "The black mirror shows your hidden strengths, look deeper than surface fears", False),
-            (41, "Raven wings carry messages from your depths, decode the symbols they bring", False),
-            (42, "Wolf howls echo your primal knowing, remember the wildness you've forgotten", False),
-            (44, "Spider webs show intricate connections, weave the pattern that calls you", False),
-            (45, "Owl eyes pierce through illusion's veil, see the truth others fear to face", False),
-            (46, "In the cavern of your unconscious, treasures wait for the bold explorer", False),
-            (48, "In the forest of your dreams, wisdom grows for the patient wanderer", False),
-            (49, "In the ocean of your emotions, pearls form for the deep diver", False),
-            (67, "Your dark twin whispers truths you fear to hear, listen with courageous ears", False),
-            (94, "Below the noise of constant chatter, profound silence holds deep answers", False),
-            (101, "The cauldron of transformation bubbles with your becoming, stir it with intention", False),
-            (104, "The pentacle of protection shields your vulnerability, invoke it when needed", False),
-            (105, "Dusk contemplations prepare you for night's teachings, welcome the darkness", False),
-            (108, "Dawn reflections merge shadow and light within you, embrace your complexity", False),
-            (111, "The underworld rivers carry messages from your depths, decode their meaning", False),
-            (112, "The shadow realm mirrors show inverted truths, read them backwards", False),
-            (116, "Your inner vampire thirsts for authentic experience, feed it real encounters", False),
-            (118, "Your secret witch brews potions of possibility, trust her ancient recipes", False),
-            (119, "Your dormant dragon guards treasures of power, awaken it with courage", False),
-            (120, "Your sleeping phoenix prepares for rebirth through flames, surrender to transformation", False),
+            (1, "From night's depths emerges that mystery will unveil itself, listen to your intuition", True, dark_images[0]),
+            (2, "Shadow whispers speak of secrets for you, prepare to discover the unexpected", False, None),
+            (3, "In the cup of shadow your future is mixed, drink with awareness", False, None),
+            (4, "Your soul's deep roots are strengthening, nurture the inner growth", False, None),
+            (5, "From midnight's embrace comes the gift of solitude, learn what silence teaches", False, None),
+            (6, "Dancing shadows show you must look beyond appearance, find the hidden truth", True, dark_images[1]),
+            (11, "The growing moon reveals your transformation has begun, embrace what you will become", False, None),
+            (13, "The full moon reveals your strength is at its peak, embrace your power", False, None),
+            (14, "The new moon reveals a new cycle begins, embrace the unknown", False, None),
+            (32, "From time's shadows emerges that truth will reveal itself, listen to your instinct", False, None),
+            (37, "The black mirror shows your hidden strengths, look deeper than surface fears", True, dark_images[2]),
+            (41, "Raven wings carry messages from your depths, decode the symbols they bring", False, None),
+            (42, "Wolf howls echo your primal knowing, remember the wildness you've forgotten", False, None),
+            (44, "Spider webs show intricate connections, weave the pattern that calls you", False, None),
+            (45, "Owl eyes pierce through illusion's veil, see the truth others fear to face", False, None),
+            (46, "In the cavern of your unconscious, treasures wait for the bold explorer", False, None),
+            (48, "In the forest of your dreams, wisdom grows for the patient wanderer", False, None),
+            (49, "In the ocean of your emotions, pearls form for the deep diver", False, None),
+            (67, "Your dark twin whispers truths you fear to hear, listen with courageous ears", False, None),
+            (94, "Below the noise of constant chatter, profound silence holds deep answers", False, None),
+            (101, "The cauldron of transformation bubbles with your becoming, stir it with intention", False, None),
+            (104, "The pentacle of protection shields your vulnerability, invoke it when needed", False, None),
+            (105, "Dusk contemplations prepare you for night's teachings, welcome the darkness", False, None),
+            (108, "Dawn reflections merge shadow and light within you, embrace your complexity", False, None),
+            (111, "The underworld rivers carry messages from your depths, decode their meaning", False, None),
+            (112, "The shadow realm mirrors show inverted truths, read them backwards", False, None),
+            (116, "Your inner vampire thirsts for authentic experience, feed it real encounters", False, None),
+            (118, "Your secret witch brews potions of possibility, trust her ancient recipes", False, None),
+            (119, "Your dormant dragon guards treasures of power, awaken it with courage", False, None),
+            (120, "Your sleeping phoenix prepares for rebirth through flames, surrender to transformation", False, None),
         ]
         
-        for response_num, text, has_image in light_responses:
+        for response_num, text, has_image, image_url in light_responses:
             cursor.execute(
-                "INSERT INTO responses (response_number, angel_type, text_content, has_image, image_path) VALUES (?, ?, ?, ?, ?)",
-                (response_num, 'light', text, has_image, None)
+                "INSERT INTO responses (response_number, angel_type, text_content, has_image, image_url) VALUES (?, ?, ?, ?, ?)",
+                (response_num, 'light', text, has_image, image_url)
             )
         
-        for response_num, text, has_image in dark_responses:
+        for response_num, text, has_image, image_url in dark_responses:
             cursor.execute(
-                "INSERT INTO responses (response_number, angel_type, text_content, has_image, image_path) VALUES (?, ?, ?, ?, ?)",
-                (response_num, 'dark', text, has_image, None)
+                "INSERT INTO responses (response_number, angel_type, text_content, has_image, image_url) VALUES (?, ?, ?, ?, ?)",
+                (response_num, 'dark', text, has_image, image_url)
             )
         
         conn.commit()
@@ -358,21 +370,10 @@ class DatabaseManager:
     
     def get_sound_path(self, angel_type):
         if angel_type == 'light':
-            return 'sounds/light_angel.ogg'
+            return 'sounds/light_angel.mp3'
         elif angel_type == 'dark':
-            return 'sounds/dark_angel.ogg'
+            return 'sounds/dark_angel.mp3'
         return None
-    
-    def get_image_path(self, angel_type, response_number):
-        if angel_type == 'light':
-            folder = 'luce'
-        elif angel_type == 'dark':
-            folder = 'oscurità'
-        else:
-            return None
-        
-        image_path = f'images/{folder}/risposta {response_number}.png'
-        return image_path if os.path.exists(image_path) else None
     
     def log_question(self, user_id, angel_type, response_id, question_text=""):
         conn = sqlite3.connect(self.db_path)
@@ -615,6 +616,84 @@ async def show_user_status(query, user_id):
     
     if not db.check_cooldown(user_id):
         minutes_left = db.get_time_until_next_question(user_id)
+        angel_name = "Seraphiel" if angel_type == 'light' else "Nyxareth"
+        await update.message.reply_text(
+            f"⏰ {angel_name} needs {minutes_left} more minutes to restore divine energy.\n\n"
+            f"Upgrade to Premium for shorter cooldowns!",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("💎 View Premium Plans", callback_data='premium')]
+            ])
+        )
+        return
+    
+    response = db.get_random_response(angel_type)
+    if not response:
+        await update.message.reply_text("⛔ Sorry, no responses available.")
+        return
+    
+    response_id, response_number, angel_type, text_content, has_image, image_url, language = response
+    
+    db.log_question(user_id, angel_type, response_id, text[:200])
+    
+    angel_name = "Seraphiel" if angel_type == 'light' else "Nyxareth"
+    angel_emoji = "✨" if angel_type == 'light' else "🖤"
+    formatted_response = f"{angel_emoji} *{text_content}*\n\n*- {angel_name}*"
+    
+    await update.message.reply_text(formatted_response, parse_mode=ParseMode.MARKDOWN)
+    
+    # Invia audio se disponibile
+    sound_path = db.get_sound_path(angel_type)
+    if sound_path and os.path.exists(sound_path):
+        try:
+            with open(sound_path, 'rb') as sound_file:
+                await update.message.reply_audio(
+                    audio=sound_file,
+                    caption=f"🎵 {angel_name}'s divine energy resonates...",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+        except Exception as e:
+            logger.warning(f"Could not send sound file: {e}")
+    
+    # Invia immagine se disponibile
+    if has_image and image_url:
+        try:
+            await update.message.reply_photo(
+                photo=image_url,
+                caption=f"🌟 A vision from {angel_name} appears before you...",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            logger.info(f"Sent image: {image_url}")
+        except Exception as e:
+            logger.warning(f"Could not send image: {e}")
+    
+    keyboard = [
+        [InlineKeyboardButton(f"Ask {angel_name} Again", callback_data=f'angel_{angel_type}')],
+        [InlineKeyboardButton("Switch Angel", callback_data='back_main')],
+        [InlineKeyboardButton("💎 Upgrade Premium", callback_data='premium')]
+    ]
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        "The divine energies have spoken. What would you like to do next?",
+        reply_markup=reply_markup
+    )
+
+def main():
+    if not BOT_TOKEN:
+        logger.error("BOT_TOKEN environment variable not set!")
+        return
+    
+    application = Application.builder().token(BOT_TOKEN).build()
+    
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(handle_callback))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    
+    logger.info("Angels Oracle Bot started successfully!")
+    application.run_polling(drop_pending_updates=True)
+
+if __name__ == '__main__':
+    main()id)
         status_text += f"\n\n⏰ **Next question in:** {minutes_left} minutes"
     
     keyboard = [
@@ -672,91 +751,4 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     if not db.check_cooldown(user_id):
-        minutes_left = db.get_time_until_next_question(user_id)
-        angel_name = "Seraphiel" if angel_type == 'light' else "Nyxareth"
-        await update.message.reply_text(
-            f"⏰ {angel_name} needs {minutes_left} more minutes to restore divine energy.\n\n"
-            f"Upgrade to Premium for shorter cooldowns!",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("💎 View Premium Plans", callback_data='premium')]
-            ])
-        )
-        return
-    
-    response = db.get_random_response(angel_type)
-    if not response:
-        await update.message.reply_text("⛔ Sorry, no responses available.")
-        return
-    
-    response_id, response_number, angel_type_from_db, text_content, has_image, image_path_db, language = response
-    
-    db.log_question(user_id, angel_type, response_id, text[:200])
-    
-    angel_name = "Seraphiel" if angel_type == 'light' else "Nyxareth"
-    angel_emoji = "✨" if angel_type == 'light' else "🖤"
-    formatted_response = f"{angel_emoji} *{text_content}*\n\n*- {angel_name}*"
-    
-    await update.message.reply_text(formatted_response, parse_mode=ParseMode.MARKDOWN)
-    
-    # Send image if available (using the actual angel_type and response_number from DB)
-    image_path = db.get_image_path(angel_type, response_number)
-    logger.info(f"Looking for image: {image_path}")
-    if image_path:
-        logger.info(f"Image path exists, trying to send: {image_path}")
-        try:
-            with open(image_path, 'rb') as image_file:
-                await update.message.reply_photo(
-                    photo=image_file,
-                    caption=f"{angel_emoji} Divine vision from {angel_name}",
-                    parse_mode=ParseMode.MARKDOWN
-                )
-        except Exception as e:
-            logger.warning(f"Could not send image file: {e}")
-    else:
-        logger.info(f"No image found for {angel_type} response {response_number}")
-    
-    # Send sound effect (always)
-    sound_path = db.get_sound_path(angel_type)
-    logger.info(f"Looking for sound: {sound_path}")
-    if sound_path and os.path.exists(sound_path):
-        logger.info(f"Sound path exists, trying to send: {sound_path}")
-        try:
-            with open(sound_path, 'rb') as sound_file:
-                await update.message.reply_voice(
-                    voice=sound_file,
-                    caption=f"🎵 {angel_name}'s divine energy resonates...",
-                    parse_mode=ParseMode.MARKDOWN
-                )
-        except Exception as e:
-            logger.warning(f"Could not send sound file: {e}")
-    else:
-        logger.info(f"Sound file not found: {sound_path}")
-    
-    keyboard = [
-        [InlineKeyboardButton(f"Ask {angel_name} Again", callback_data=f'angel_{angel_type}')],
-        [InlineKeyboardButton("Switch Angel", callback_data='back_main')],
-        [InlineKeyboardButton("💎 Upgrade Premium", callback_data='premium')]
-    ]
-    
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
-        "The divine energies have spoken. What would you like to do next?",
-        reply_markup=reply_markup
-    )
-
-def main():
-    if not BOT_TOKEN:
-        logger.error("BOT_TOKEN environment variable not set!")
-        return
-    
-    application = Application.builder().token(BOT_TOKEN).build()
-    
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(handle_callback))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    
-    logger.info("Angels Oracle Bot started successfully!")
-    application.run_polling(drop_pending_updates=True)
-
-if __name__ == '__main__':
-    main()
+        minutes_left = db.get_time_until_next_question(user_
